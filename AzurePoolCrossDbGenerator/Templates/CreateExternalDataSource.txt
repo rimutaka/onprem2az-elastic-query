@@ -1,0 +1,11 @@
+USE [{0}]
+
+DROP EXTERNAL DATA SOURCE [{1}]
+GO
+
+CREATE EXTERNAL DATA SOURCE [{1}] 
+	WITH (TYPE = RDBMS, LOCATION = N'{3}.database.windows.net', 
+		CREDENTIAL = [{4}], DATABASE_NAME = N'{5}')
+GO
+
+

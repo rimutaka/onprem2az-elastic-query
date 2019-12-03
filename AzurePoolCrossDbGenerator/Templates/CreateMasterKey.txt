@@ -1,0 +1,8 @@
+USE [{0}]
+
+-- initialise the master key required to store other passwords in the DB
+-- one per DB and can only be run once
+ CREATE MASTER KEY ENCRYPTION BY PASSWORD = '{1}';
+ CREATE DATABASE SCOPED CREDENTIAL {2}
+ WITH IDENTITY = '{3}',
+ SECRET = '{4}';
