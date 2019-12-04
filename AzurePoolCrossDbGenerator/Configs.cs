@@ -7,7 +7,9 @@ namespace AzurePoolCrossDbGenerator
 {
     public class Configs
     {
-
+        /// <summary>
+        /// A base class for multiple configuration types.
+        /// </summary>
         public abstract class GenericConfigEntry
         {
             public string folder;
@@ -17,7 +19,7 @@ namespace AzurePoolCrossDbGenerator
             /// Add missing values from mergeFrom to this.
             /// </summary>
             /// <param name="mergeFrom"></param>
-            public void Merge(GenericConfigEntry mergeFrom)
+            public GenericConfigEntry Merge(GenericConfigEntry mergeFrom)
             {
                 // get list of public fields
                 Type myType = mergeFrom.GetType();
@@ -31,6 +33,8 @@ namespace AzurePoolCrossDbGenerator
                     string to = (string)myType.GetField(name).GetValue(this);
                     if (to == null) myType.GetField(name).SetValue(this, from);
                 }
+
+                return this;
             }
         }
 
@@ -46,8 +50,9 @@ namespace AzurePoolCrossDbGenerator
         {
             public string externalDB;
             public string serverName;
-            public string sourceName;
+            public string sourceNamePrefix;
             public string credential;
+            public string twoway;
         }
 
 

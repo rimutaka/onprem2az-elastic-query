@@ -34,4 +34,11 @@ E.g. 2nd and 3rd objects will get all the properties except for `localDB` copied
 ]
 ```
 
+`twoway: 1` - generates the first script as prescribed, then reverses `externalDB` <-> `localDB` and generates again. 
+Use this option if the other properties of the connection are identical.
 
+## Security
+
+The code is built for reuse of the same credential name for all DBs.
+It may be a more secure set up if you use a separate credential for every ext data source. 
+You may want to change the code to generate the cred names automatically.

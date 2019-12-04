@@ -4,8 +4,8 @@ DROP EXTERNAL DATA SOURCE [{1}]
 GO
 
 CREATE EXTERNAL DATA SOURCE [{1}] 
-	WITH (TYPE = RDBMS, LOCATION = N'{3}.database.windows.net', 
-		CREDENTIAL = [{4}], DATABASE_NAME = N'{5}')
+	WITH (TYPE = RDBMS, LOCATION = N'{2}.database.windows.net', 
+		CREDENTIAL = [{3}], DATABASE_NAME = N'{4}')
 GO
 
 
