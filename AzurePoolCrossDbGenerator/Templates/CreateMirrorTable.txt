@@ -5,10 +5,10 @@
 
 
 USE [{0}]
-DROP TABLE {2}__{1}_mirror
+DROP TABLE IF EXISTS {2}__{1}
 GO
 
-CREATE EXTERNAL TABLE {2}__{1}_mirror(
+CREATE EXTERNAL TABLE {2}__{1}(
 	{3}
 )WITH ( DATA_SOURCE = [RemoteDB_{2}], SCHEMA_NAME = N'dbo', OBJECT_NAME = N'{1}')
 

@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Reflection;
 using System.Collections.Generic;
-using System.Text;
+using System.IO;
+using Newtonsoft.Json;
 
 namespace AzurePoolCrossDbGenerator
 {
@@ -12,7 +13,7 @@ namespace AzurePoolCrossDbGenerator
         /// </summary>
         public abstract class GenericConfigEntry
         {
-            
+
 
             /// <summary>
             /// Add missing values from mergeFrom to this.
@@ -35,6 +36,28 @@ namespace AzurePoolCrossDbGenerator
 
                 return this;
             }
+
+            /// <summary>
+            /// Save a single config file. No overwrites.
+            /// </summary>
+            /// <param name="config"></param>
+            /// <param name="destFolder"></param>
+            /// <param name="configContents"></param>
+            public static void SaveConfigFile(Configs.GenericConfigEntry config, string destFolder, string configContents)
+            {
+                string configType = config.GetType().Name;
+                string configPath = Path.Combine(destFolder, $"{configType}.json");
+                if (File.Exists(configPath))
+                {
+                    Console.WriteLine($"{configType} already exists.");
+                }
+                else
+                {
+                    File.WriteAllText(configPath, configContents, System.Text.Encoding.UTF8);
+                    Console.WriteLine($"{configType} written.");
+                }
+            }
+
         }
 
         public class CreateMasterKey : GenericConfigEntry
@@ -65,13 +88,19 @@ namespace AzurePoolCrossDbGenerator
             public string table;
         }
 
-        public class CreateExtTable : GenericConfigEntry
+        public class CreateTable : GenericConfigEntry
         {
             public string folder;
             public string localDB;
             public string remoteDB;
             public string table;
             public string remoteCS;
+        }
+
+        public class GenerateTableList : GenericConfigEntry
+        {
+            public string folder;
+            public string tables;
         }
 
     }

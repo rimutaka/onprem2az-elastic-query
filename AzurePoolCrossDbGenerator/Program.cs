@@ -8,11 +8,12 @@ namespace AzurePoolCrossDbGenerator
     {
         // List of known commands
         public const string commandKey = "key", 
-            commandSource = "source", 
-            commandConfig = "config", 
+            commandGenerateExternalDataSources = "source", 
+            commandGenerateBlankConfigFiles = "config", 
             commandMirror = "mirror",
-            commandTableExt = "ext-table",
-            commandTableMir = "mir-table";
+            commandGenerateExternalTables = "ext-table",
+            commandGenerateMirrorTables = "mir-table",
+            commandGenerateListOfTablesConfig = "tables";
         public static readonly string templateFolder = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), @"Templates");
 
         static void Main(string[] args)
@@ -33,7 +34,7 @@ namespace AzurePoolCrossDbGenerator
 
             
             // config command doesn't need a config file - process it first
-            if (command == commandConfig)
+            if (command == commandGenerateBlankConfigFiles)
             {
                Generators.GenerateBlankConfigs(configFileName);
                 PreExit();
@@ -72,7 +73,7 @@ namespace AzurePoolCrossDbGenerator
                         Generators.CreateMasterKey(configJson, templateFolder);
                         break;
                     }
-                case commandSource:
+                case commandGenerateExternalDataSources:
                     {
                         Generators.CreateExternalDataSource(configJson, templateFolder);
                         break;
@@ -82,14 +83,19 @@ namespace AzurePoolCrossDbGenerator
                         Generators.CreateMasterMirror(configJson, templateFolder);
                         break;
                     }
-                case commandTableExt:
+                case commandGenerateExternalTables:
                     {
                         Generators.CreateExtTable(configJson, templateFolder);
                         break;
                     }
-                case commandTableMir:
+                case commandGenerateMirrorTables:
                     {
                         Generators.CreateMirrorTable(configJson, templateFolder);
+                        break;
+                    }
+                case  commandGenerateListOfTablesConfig:
+                    {
+                        Generators.GenerateListOfTables(configJson, templateFolder);
                         break;
                     }
 

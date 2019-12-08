@@ -14,8 +14,8 @@ namespace AzurePoolCrossDbGenerator
         public static void CreateMirrorTable(string configJson, string templateFolder)
         {
             // load data
-            Configs.CreateExtTable[] config = JsonConvert.DeserializeObject<Configs.CreateExtTable[]>(configJson);
-            Configs.CreateExtTable sharedConfig = new Configs.CreateExtTable();
+            Configs.CreateTable[] config = JsonConvert.DeserializeObject<Configs.CreateTable[]>(configJson);
+            Configs.CreateTable sharedConfig = new Configs.CreateTable();
 
 
             string templateContents = Generators.GetTemplateContents(templateFolder, "CreateMirrorTable.txt");
@@ -24,7 +24,7 @@ namespace AzurePoolCrossDbGenerator
             for (int i = 0; i < config.Length; i++)
             {
                 // merge with the previous full version of the config
-                sharedConfig = (Configs.CreateExtTable)config[i].Merge(sharedConfig);
+                sharedConfig = (Configs.CreateTable)config[i].Merge(sharedConfig);
                 if (!Generators.IsDestFolderOK(config[i].folder, i)) continue;
 
                 // get the column list
