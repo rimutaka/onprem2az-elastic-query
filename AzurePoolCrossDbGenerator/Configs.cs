@@ -12,8 +12,7 @@ namespace AzurePoolCrossDbGenerator
         /// </summary>
         public abstract class GenericConfigEntry
         {
-            public string folder;
-            public string localDB;
+            
 
             /// <summary>
             /// Add missing values from mergeFrom to this.
@@ -40,6 +39,8 @@ namespace AzurePoolCrossDbGenerator
 
         public class CreateMasterKey : GenericConfigEntry
         {
+            public string folder;
+            public string localDB;
             public string password;
             public string credential;
             public string identity;
@@ -48,14 +49,30 @@ namespace AzurePoolCrossDbGenerator
 
         public class CreateExternalDataSource : GenericConfigEntry
         {
+            public string folder;
+            public string localDB;
             public string externalDB;
             public string serverName;
-            public string sourceNamePrefix;
             public string credential;
             public string twoway;
         }
 
+        public class CreateMasterMirror : GenericConfigEntry
+        {
+            public string folder;
+            public string masterDB;
+            public string mirrorDB;
+            public string table;
+        }
 
+        public class CreateExtTable : GenericConfigEntry
+        {
+            public string folder;
+            public string localDB;
+            public string remoteDB;
+            public string table;
+            public string remoteCS;
+        }
 
     }
 }

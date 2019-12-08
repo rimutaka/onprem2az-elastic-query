@@ -1,0 +1,8 @@
+-- 0 - master DB name
+-- 1 - master table name
+-- 2 - mirror DB name
+
+USE [{0}]
+ALTER TABLE dbo.{1} ADD
+	mirror_key UNIQUEIDENTIFIER NULL
+GO

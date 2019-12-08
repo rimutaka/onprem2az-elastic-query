@@ -1,0 +1,9 @@
+-- 0 - master DB name
+-- 1 - master table name
+-- 2 - mirror DB name
+
+USE [{2}]
+DROP TABLE {1}_{0}_{2}
+GO
+
+SELECT TOP 1 * INTO {1}_{0}_{2} FROM tb_b WHERE 1=2

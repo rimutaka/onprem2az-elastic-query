@@ -7,7 +7,12 @@ namespace AzurePoolCrossDbGenerator
     class Program
     {
         // List of known commands
-        public const string commandKey = "key", commandSource = "source", commandConfig = "config";
+        public const string commandKey = "key", 
+            commandSource = "source", 
+            commandConfig = "config", 
+            commandMirror = "mirror",
+            commandTableExt = "ext-table",
+            commandTableMir = "mir-table";
         public static readonly string templateFolder = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), @"Templates");
 
         static void Main(string[] args)
@@ -70,6 +75,21 @@ namespace AzurePoolCrossDbGenerator
                 case commandSource:
                     {
                         Generators.CreateExternalDataSource(configJson, templateFolder);
+                        break;
+                    }
+                case commandMirror:
+                    {
+                        Generators.CreateMasterMirror(configJson, templateFolder);
+                        break;
+                    }
+                case commandTableExt:
+                    {
+                        Generators.CreateExtTable(configJson, templateFolder);
+                        break;
+                    }
+                case commandTableMir:
+                    {
+                        Generators.CreateMirrorTable(configJson, templateFolder);
                         break;
                     }
 

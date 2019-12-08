@@ -1,0 +1,15 @@
+-- 0 - local DB name
+-- 1 - remote table name
+-- 2 - remote DB name
+-- 3 - table columns
+
+
+USE [{0}]
+DROP TABLE {2}__{1}_mirror
+GO
+
+CREATE EXTERNAL TABLE {2}__{1}_mirror(
+	{3}
+)WITH ( DATA_SOURCE = [RemoteDB_{2}], SCHEMA_NAME = N'dbo', OBJECT_NAME = N'{1}')
+
+GO

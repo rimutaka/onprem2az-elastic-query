@@ -30,8 +30,8 @@ namespace AzurePoolCrossDbGenerator
                 {
                     // interpolate
                     string outputContents = string.Format(templateContents,
-                        config[i].localDB, config[i].sourceNamePrefix + config[i].externalDB,
-                        config[i].serverName, config[i].credential, config[i].externalDB);
+                        config[i].localDB, config[i].externalDB,
+                        config[i].serverName, config[i].credential);
 
                     string outputFileName = Path.Combine(config[i].folder,
                         $"CreateExtDataSrc_{config[i].localDB}_{config[i].externalDB}{fileExtSQL}");

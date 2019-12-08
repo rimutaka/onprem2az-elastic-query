@@ -7,7 +7,12 @@
 
   <ItemGroup>
     <None Remove="Templates\CreateExternalDataSource.txt" />
+    <None Remove="Templates\CreateExtTable.txt" />
     <None Remove="Templates\CreateMasterKey.txt" />
+    <None Remove="Templates\CreateMirrorTable.txt" />
+    <None Remove="Templates\MasterAlterTable.txt" />
+    <None Remove="Templates\MasterCreateSP.txt" />
+    <None Remove="Templates\MirrorCreateTable.txt" />
   </ItemGroup>
 
   <ItemGroup>
@@ -16,6 +21,21 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Templates\CreateMirrorTable.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Templates\CreateExtTable.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Templates\MirrorCreateTable.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Templates\MasterCreateSP.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Templates\MasterAlterTable.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Templates\CreateExternalDataSource.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
