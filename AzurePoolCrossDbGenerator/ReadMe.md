@@ -47,6 +47,32 @@ E.g. 2nd and 3rd objects will get all the properties except for `localDB` copied
 `twoway: 1` - generates the first script as prescribed, then reverses `externalDB` <-> `localDB` and generates again. 
 Use this option if the other properties of the connection are identical.
 
+### Config file generation
+
+Use command `config` to generate all possible config files with blank values.
+
+Populate `CreateTableList.json` with values and run `tables CreateTableList.json` command to generate 2 more config files with table data.
+
+Values for `folder`, `serverName`, `password`, `credential`, `identity`, `secret` are copied into the generated configs.
+
+`connections` should contain connection strings, one per line. E.g. 
+```
+Persist Security Info=False;User ID=sa;Password=sapwd;Initial Catalog=central;Server=.
+Persist Security Info=False;User ID=sa;Password=sapwd;Initial Catalog=pblciti;Server=.
+Persist Security Info=False;User ID=sa;Password=sapwd;Initial Catalog=reporting;Server=.
+```
+
+`mirrorDB` - name of the single DB that mirrors the tables in others. Usually it is the customer DB writing to shared DBs.
+
+`masterTables` - a list of 3-part table names being remotely update from the *mirror DB*. One table per line. E.g.
+```
+central.dbo.tbt_EstimatedCategory 
+helpdesk.dbo.departments
+PBLCITI..TBR_CHANNEL_AGENCY
+```
+
+Use the output of `tables CreateTableList.json` to create external and mirror tables.
+
 ## Security
 
 The code is built for reuse of the same credential name for all DBs.

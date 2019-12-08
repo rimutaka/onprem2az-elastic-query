@@ -25,6 +25,14 @@ namespace AzurePoolCrossDbGenerator
             string command = (args.Length > 0) ? args[0]?.Trim().ToLower():""; // must be a valid command
             string configFileName =(args.Length>1)?args[1]:""; // full path to the config file to process
 
+            // config command doesn't need a config file - process it first
+            if (command == commandGenerateBlankConfigFiles)
+            {
+                Generators.GenerateBlankConfigs(configFileName);
+                PreExit();
+                return;
+            }
+
             // check there are 2 args
             if (string.IsNullOrEmpty(command) || string.IsNullOrEmpty(configFileName))
             {
@@ -32,14 +40,8 @@ namespace AzurePoolCrossDbGenerator
                 return;
             }
 
-            
-            // config command doesn't need a config file - process it first
-            if (command == commandGenerateBlankConfigFiles)
-            {
-               Generators.GenerateBlankConfigs(configFileName);
-                PreExit();
-                return;
-            }
+            // use the current directory to look for the config file
+            configFileName = Path.Combine(Directory.GetCurrentDirectory(), configFileName);
 
             // all other commands require a config file - check that it exists first
             if (!System.IO.File.Exists(configFileName))
@@ -80,7 +82,7 @@ namespace AzurePoolCrossDbGenerator
                     }
                 case commandMirror:
                     {
-                        Generators.CreateMasterMirror(configJson, templateFolder);
+                        Generators.CreateMaster(configJson, templateFolder);
                         break;
                     }
                 case commandGenerateExternalTables:

@@ -11,7 +11,7 @@ namespace AzurePoolCrossDbGenerator
         /// Creates tables and SPs in Master and Mirror DBs. 
         /// </summary>
         /// <param name="configFile"></param>
-        public static void CreateMasterMirror(string configJson, string templateFolder)
+        public static void CreateMaster(string configJson, string templateFolder)
         {
             // load data
             Configs.CreateMasterMirror[] config = JsonConvert.DeserializeObject<Configs.CreateMasterMirror[]>(configJson);
@@ -19,22 +19,22 @@ namespace AzurePoolCrossDbGenerator
 
 
             // generate output using different templates
-            CreateMasterMirror_Loop("MasterAlterTable", templateFolder, sharedConfig, config);
-            CreateMasterMirror_Loop("MasterCreateSP", templateFolder, sharedConfig, config);
-            //CreateMasterMirror_Loop("MirrorAlterTable", templateFolder, sharedConfig, config);
-            //CreateMasterMirror_Loop("MirrorSP", templateFolder, sharedConfig, config);
+            CreateMaster_Loop("MasterAlterTable", templateFolder, sharedConfig, config);
+            CreateMaster_Loop("MasterCreateSP", templateFolder, sharedConfig, config);
+            //CreateMaster_Loop("MirrorAlterTable", templateFolder, sharedConfig, config);
+            //CreateMaster_Loop("MirrorSP", templateFolder, sharedConfig, config);
 
 
         }
 
         /// <summary>
-        /// A repeatable part of CreateMasterMirror for different templates
+        /// A repeatable part of CreateMaster for different templates
         /// </summary>
         /// <param name="templateName"></param>
         /// <param name="templateFolder"></param>
         /// <param name="sharedConfig"></param>
         /// <param name="config"></param>
-        static void CreateMasterMirror_Loop(string templateName, string templateFolder, Configs.CreateMasterMirror sharedConfig, Configs.CreateMasterMirror[] config)
+        static void CreateMaster_Loop(string templateName, string templateFolder, Configs.CreateMasterMirror sharedConfig, Configs.CreateMasterMirror[] config)
         {
             string templateContents = Generators.GetTemplateContents(templateFolder, templateName+".txt");
 

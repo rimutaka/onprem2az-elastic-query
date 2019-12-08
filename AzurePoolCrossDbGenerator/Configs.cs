@@ -40,12 +40,8 @@ namespace AzurePoolCrossDbGenerator
             /// <summary>
             /// Save a single config file. No overwrites.
             /// </summary>
-            /// <param name="config"></param>
-            /// <param name="destFolder"></param>
-            /// <param name="configContents"></param>
-            public static void SaveConfigFile(Configs.GenericConfigEntry config, string destFolder, string configContents)
+            public static void SaveConfigFile(string configType, string destFolder, string configContents)
             {
-                string configType = config.GetType().Name;
                 string configPath = Path.Combine(destFolder, $"{configType}.json");
                 if (File.Exists(configPath))
                 {
@@ -56,6 +52,18 @@ namespace AzurePoolCrossDbGenerator
                     File.WriteAllText(configPath, configContents, System.Text.Encoding.UTF8);
                     Console.WriteLine($"{configType} written.");
                 }
+            }
+
+            /// <summary>
+            /// Save a single config file. No overwrites.
+            /// </summary>
+            /// <param name="config"></param>
+            /// <param name="destFolder"></param>
+            /// <param name="configContents"></param>
+            public static void SaveConfigFile(Configs.GenericConfigEntry config, string destFolder, string configContents)
+            {
+                string configType = config.GetType().Name;
+                SaveConfigFile(configType, destFolder, configContents);
             }
 
         }
@@ -93,14 +101,22 @@ namespace AzurePoolCrossDbGenerator
             public string folder;
             public string localDB;
             public string remoteDB;
-            public string table;
             public string remoteCS;
+            public string table;
         }
 
         public class GenerateTableList : GenericConfigEntry
         {
             public string folder;
-            public string tables;
+            public string masterTables;
+            public string mirrorDB;
+            public string serverName;
+            public string password;
+            public string credential;
+            public string identity;
+            public string secret;
+            public string twoway;
+            public string connections;
         }
 
     }
