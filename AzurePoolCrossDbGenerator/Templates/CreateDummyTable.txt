@@ -1,0 +1,21 @@
+-- Creates a a dummy table in place of an external table on Master to access the same table on Mirror
+-- for remote reads from Master. This is done to avoid creating an external datasource locally.
+-- Once the master DB is deployed, this table would have to be dropped and re-created as an external table.
+
+-- 0 - mirrorDB
+-- 1 - masterDB
+-- 2 - masterTable
+-- 3 - table columns
+
+USE [{1}]
+GO
+
+DROP TABLE IF EXISTS ext_{0}__{2}
+GO
+
+CREATE TABLE ext_{0}__{2}(
+{3},
+mirror_key UNIQUEIDENTIFIER NULL
+)
+
+GO

@@ -70,6 +70,15 @@ helpdesk.dbo.departments
 PBLCITI..TBR_CHANNEL_AGENCY
 ```
 
+## Script templates
+
+The templates are text files with .Net string interpolation via *String.Format(...)*. Use `{n}` placeholders with the following numbers:
+
+* {0} - mirrorDB
+* {1} - masterDB
+* {2} - masterTable
+* {3} - table columns
+
 ## Security
 
 The code is built for reuse of the same credential name for all DBs.
@@ -85,3 +94,12 @@ You may want to change the code to generate the cred names automatically.
 5. Create ext tables
 6. Create SPs at both ends
 
+## Bootsrapping DB export for Azure SQL Pool
+
+Exporting a DB for Azure SQL Pool requires `.bacpac` file format. It is done with *SQlPackage.exe* utility (https://docs.microsoft.com/en-us/sql/tools/sqlpackage).
+
+The utility will check all internal references before exporting the file and raise an error for any cross-DB reference. 
+So we need to update the DBs to using *ElasticQuery*, but it is not possible with an on-prem SQL Server. It's a bit of a catch-22.
+
+The workaround is to create temporary tables and SPs with the same names as the external tables and no references to external data sources.
+Then we can update all existing cross-DB references with the new local ones, import into Azure and then replace the dummy objects with the proper ones.

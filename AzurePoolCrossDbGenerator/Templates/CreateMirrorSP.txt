@@ -19,13 +19,15 @@ BEGIN
 	declare @mirror_key_local AS UNIQUEIDENTIFIER
 	set @mirror_key_local = NEWID()
 
-	update {1}__{2} set mirror_key = @mirror_key_local
+	update mr_{1}__{2} set mirror_key = @mirror_key_local
 
+/***
    	exec sp_execute_remote @data_source_name  = N'RemoteDB_{1}', 
 		@stmt = N'sp_CopyFrom_{0}__{2} @mirror_key', 
 		@params = N'@mirror_key AS UNIQUEIDENTIFIER',
 		@mirror_key = @mirror_key_local; 
+***/
 
-	delete from {1}__{2} where mirror_key = @mirror_key_local
+	delete from mr_{1}__{2} where mirror_key = @mirror_key_local
 
 END
