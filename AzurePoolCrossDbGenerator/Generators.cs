@@ -12,14 +12,21 @@ namespace AzurePoolCrossDbGenerator
         public const string fileExtSQL = ".sql";
 
         /// <summary>
-        /// Load the specified template contents from a file
+        /// Load the specified template contents from a file or exits if the template cannot be found.
         /// </summary>
-        /// <param name="templateFolder"></param>
-        /// <param name="fileName"></param>
         /// <returns></returns>
-        static string GetTemplateContents(string templateFolder, string fileName)
+        static string GetTemplateContents(string fileName)
         {
-            string templatePath = Path.Combine(templateFolder, fileName);
+            string templateFolder = Path.Combine(Directory.GetCurrentDirectory(), Program.FileNames.TemplatesFolder);
+
+            string templatePath = (Path.IsPathFullyQualified(fileName)) ? fileName : Path.Combine(templateFolder, fileName);
+
+            if (!File.Exists(templatePath))
+            {
+                Console.WriteLine($"Template not found: {templatePath}");
+                Program.ExitApp();
+            }
+
             string templateContents = File.ReadAllText(templatePath);
 
             return templateContents;

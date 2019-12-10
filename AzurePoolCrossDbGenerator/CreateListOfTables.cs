@@ -12,7 +12,7 @@ namespace AzurePoolCrossDbGenerator
         /// Genrate a generic list of tables as JSON for further editing. 
         /// </summary>
         /// <param name="configFile"></param>
-        public static void GenerateListOfTables(string configJson, string templateFolder)
+        public static void GenerateListOfTables(string configJson)
         {
             // load data
             Configs.InitialConfig config = JsonConvert.DeserializeObject<Configs.InitialConfig>(configJson);
@@ -47,7 +47,7 @@ namespace AzurePoolCrossDbGenerator
 
                 tableList.Add(tableItem); // add to the collection
 
-                prevTable = (Configs.AllTables)tableItem.Merge(prevTable); // merge with overwrite
+                prevTable.Merge(tableItem, true); // merge with overwrite
 
             }
 

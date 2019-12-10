@@ -9,8 +9,14 @@ Use the following format: AzurePoolCrossDbGenerator [command] [config file name 
 * `config` - generates `TablesConfig.json` from `config.json` to establish links between DBs 
 * `key` - generates *CREATE MASTER KEY* statements 
 * `source` - generates *CREATE EXTERNAL DATA SOURCE* statements
-* `script` - generates a script using specified template name from *templates* sub-folder
+* `script` - generates a script using specified template. Accepts a file name from *templates* sub-folder or a fully-qualified file name.
 
+## Folder structure
+`./config` - all the config files. The names are hardcoded.
+`./scripts` - output directory for script generation.
+`./templates` - a default location for script templates
+
+Existing files are never overwritten.
 
 ## Config JSON files
 
@@ -42,11 +48,11 @@ Use this option if the other properties of the connection are identical.
 
 ### Config file generation
 
-Use command `config` to generate all possible config files with blank values.
+Use command `init` to generate all possible config files with blank values.
 
-Populate `CreateTableList.json` with values and run `tables CreateTableList.json` command to generate 2 more config files with table data.
+Populate `config/config.json` with values and run `config` command to generate more config files with table data.
 
-Values for `folder`, `serverName`, `password`, `credential`, `identity`, `secret` are copied into the generated configs.
+Values for `serverName`, `password`, `credential`, `identity`, `secret` are copied into the generated configs.
 
 `connections` should contain connection strings, one per line. E.g. 
 ```

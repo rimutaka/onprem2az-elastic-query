@@ -14,7 +14,7 @@ namespace AzurePoolCrossDbGenerator
             Console.WriteLine("AzurePoolCrossDbGenerator started.");
 
             string command = (args.Length > 0) ? args[0]?.Trim().ToLower() : ""; // must be a valid command
-            string scriptTemplateFileName = (args.Length > 1) ? args[1] : ""; // full path to the config file to process
+            string scriptTemplateFileName = (args.Length > 1) ? args[1] : ""; // a file name with the template to use
 
             // validate the params
             if (string.IsNullOrEmpty(command))
@@ -40,12 +40,12 @@ namespace AzurePoolCrossDbGenerator
             {
                 case Commands.GenerateMasterKeys:
                     {
-                        Generators.CreateMasterKey(LoadConfigFile(FileNames.MasterKeyConfig), templateFolder);
+                        Generators.CreateMasterKey(LoadConfigFile(FileNames.MasterKeyConfig));
                         break;
                     }
                 case Commands.GenerateExternalDataSources:
                     {
-                        Generators.CreateExternalDataSource(LoadConfigFile(FileNames.ExternalDataSourceConfig), templateFolder);
+                        Generators.CreateExternalDataSource(LoadConfigFile(FileNames.ExternalDataSourceConfig));
                         break;
                     }
                 case Commands.GenerateBlankConfigFiles:
@@ -55,14 +55,13 @@ namespace AzurePoolCrossDbGenerator
                     }
                 case Commands.GenerateTablesConfigFile:
                     {
-                        Generators.GenerateListOfTables(LoadConfigFile(FileNames.InitialConfig), templateFolder);
+                        Generators.GenerateListOfTables(LoadConfigFile(FileNames.InitialConfig));
                         break;
                     }
                 case Commands.GenericScriptGeneration:
                     {
-                        //Generators.CreateMirrorTable(configJson, templateFolder);
-                        throw new Exception($"{Commands.GenericScriptGeneration} not implemented.");
-                        //break;
+                        Generators.GenerateScript(LoadConfigFile(FileNames.TablesConfig), scriptTemplateFileName);
+                        break;
                     }
 
                 default:
@@ -137,7 +136,7 @@ namespace AzurePoolCrossDbGenerator
             public const string GenerateExternalDataSources = "sources";
             public const string GenerateBlankConfigFiles = "init";
             public const string GenerateTablesConfigFile = "config";
-            public const string GenericScriptGeneration = "script";
+            public const string GenericScriptGeneration = "template";
         }
 
     }
