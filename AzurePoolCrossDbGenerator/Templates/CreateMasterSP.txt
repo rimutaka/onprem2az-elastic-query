@@ -1,0 +1,21 @@
+-- Creates an SP on Master for reading the mirror via a local external table 
+-- and copying data to the local master table
+
+-- 0 - mirrorDB
+-- 1 - masterDB
+-- 2 - masterTable
+-- 3 - table columns
+
+
+USE [{1}]
+GO
+
+DROP PROCEDURE IF EXISTS sp_CopyFrom_{0}__{2}
+GO
+
+CREATE PROCEDURE sp_CopyFrom_{0}__{2}
+(@mirror_key AS UNIQUEIDENTIFIER)
+AS
+BEGIN
+    INSERT INTO {2} SELECT * FROM {0}__{2} WHERE mirror_key = @mirror_key 
+END

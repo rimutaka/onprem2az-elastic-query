@@ -1,15 +1,20 @@
--- 0 - local DB name
--- 1 - remote table name
--- 2 - remote DB name
+-- Creates an external table on Master to access the same table on Mirror
+-- for remote reads from Master.
+
+-- 0 - mirrorDB
+-- 1 - masterDB
+-- 2 - masterTable
 -- 3 - table columns
 
-
-USE [{0}]
-DROP EXTERNAL TABLE IF EXISTS {2}__{1}_ext
+USE [{1}]
 GO
 
-CREATE EXTERNAL TABLE {2}__{1}_ext(
-	{3}
-)WITH ( DATA_SOURCE = [RemoteDB_{2}], SCHEMA_NAME = N'dbo', OBJECT_NAME = N'{1}')
+DROP EXTERNAL TABLE IF EXISTS {0}__{2}_ext
+GO
+
+CREATE EXTERNAL TABLE {0}__{2}_ext(
+	{3},
+	mirror_key UNIQUEIDENTIFIER NULL
+)WITH ( DATA_SOURCE = RemoteDB_{0}, SCHEMA_NAME = N'dbo', OBJECT_NAME = N'{1}__{2}')
 
 GO

@@ -1,4 +1,11 @@
+-- 0 - local DB name
+-- 1 - master pwd
+-- 2 - credential name
+-- 3 - identity
+-- 4 - secret
+
 USE [{0}]
+GO
 
 -- initialise the master key required to store other passwords in the DB
 -- one per DB and can only be run once

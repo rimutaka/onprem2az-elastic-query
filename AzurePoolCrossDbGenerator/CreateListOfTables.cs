@@ -15,20 +15,21 @@ namespace AzurePoolCrossDbGenerator
         public static void GenerateListOfTables(string configJson, string templateFolder)
         {
             // load data
-            Configs.GenerateTableList config = JsonConvert.DeserializeObject<Configs.GenerateTableList>(configJson);
+            Configs.InitialConfig config = JsonConvert.DeserializeObject<Configs.InitialConfig>(configJson);
 
-            List<Configs.CreateTable> mirrorTableList = new List<Configs.CreateTable>(); // config for mirror tables
-            List<Configs.CreateTable> masterExtTableList = new List<Configs.CreateTable>(); // config for master ext tables
+            List<Configs.AllTables> tableList = new List<Configs.AllTables>(); // config for mirror tables
+            //List<Configs.AllTables> masterExtTableList = new List<Configs.AllTables>(); // config for master ext tables
 
-            // normalise line endings
-            config.masterTables = config.masterTables.Replace("\r", "");
+            Configs.AllTables prevTable = new Configs.AllTables(); // a container for tracking changes
+
+            // normalise line endings and remove [ ]
+            config.masterTables = config.masterTables.Replace("\r", "").Replace("[", "").Replace("]", "");
             config.connections = config.connections.Replace("\r", "");
 
-            string prevMasterDbName = ""; // used to track DB name changes
             var jsonSettings = new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore }; // ignore null properties
 
             // extract the connection string from master to mirror
-            string csToMirror = GetConnectionString(config, config.mirrorDB);
+            //string csToMirror = GetConnectionString(config, config.mirrorDB);
 
             foreach (string tableLine in config.masterTables.Split("\n"))
             {
@@ -39,50 +40,26 @@ namespace AzurePoolCrossDbGenerator
                 // check the format
                 if (tableParts.Length != 3) throw new Exception($"Must be a 3-part name: {tableLine}");
 
-                // extract the connection string to master from mirror
-                string csToMaster = null;
-                if (prevMasterDbName != tableParts[0].ToLower())
-                {
-                    string regexPattern = $".*Initial Catalog={tableParts[0]};.*";
-                    csToMaster = GetConnectionString(config, tableParts[0]);
-                    if (string.IsNullOrEmpty(csToMaster))
-                    {
-                        csToMaster = "connection_string_required"; // a placeholder in case the CS is missing
-                        Console.WriteLine($"{config.mirrorDB}: missing connection string.");
-                    }
-                    prevMasterDbName = tableParts[0].ToLower(); // store the current value
-                }
-
                 // add mirror table details
-                var mirrorItem = new Configs.CreateTable() { table = tableParts[2], remoteCS = csToMaster };
-                mirrorItem.remoteDB = (csToMaster == null) ? null : tableParts[0]; // only add DB name if it changed from the previous entry
-                if (mirrorTableList.Count == 0)
+                var tableItem = new Configs.AllTables()
                 {
-                    // initial settings for all mirror items
-                    mirrorItem.folder = config.folder;
-                    mirrorItem.localDB = config.mirrorDB;
-                }
-                mirrorTableList.Add(mirrorItem);
+                    masterTable = tableParts[2],
+                    masterDB = (prevTable.masterDB?.ToLower() != tableParts[0].ToLower()) ? tableParts[0] : null,
+                    mirrorDB = (prevTable.mirrorDB?.ToLower() != config.mirrorDB.ToLower()) ? config.mirrorDB : null,
+                    masterCS = (prevTable.masterDB?.ToLower() != tableParts[0].ToLower()) ? GetConnectionString(config, tableParts[0]) : null
+                };
 
-                // add master ext table details
-                var extItem = new Configs.CreateTable() { localDB = tableParts[0], table = tableParts[2] };
-                if (masterExtTableList.Count == 0)
-                {
-                    // initial settings for all master items
-                    extItem.folder = config.folder;
-                    extItem.remoteDB = config.mirrorDB;
-                    extItem.remoteCS = csToMirror;
-                }
-                masterExtTableList.Add(extItem);
+                tableList.Add(tableItem); // add to the collection
+
+                prevTable.Merge(tableItem, true); // merge with overwrite
+
             }
 
             // convert to arrays for serializing
-            Configs.CreateTable[] mirrorTableListArray = mirrorTableList.ToArray();
-            Configs.CreateTable[] extTableListArray = masterExtTableList.ToArray();
+            Configs.AllTables[] tableListArray = tableList.ToArray();
 
             // save as files
-            Configs.GenericConfigEntry.SaveConfigFile("CreateMirrorTables", config.folder, JsonConvert.SerializeObject(mirrorTableListArray, jsonSettings));
-            Configs.GenericConfigEntry.SaveConfigFile("CreateExternalTables", config.folder, JsonConvert.SerializeObject(extTableListArray, jsonSettings));
+            Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.TablesConfig, JsonConvert.SerializeObject(tableListArray, jsonSettings));
 
         }
 
@@ -92,7 +69,7 @@ namespace AzurePoolCrossDbGenerator
         /// <param name="config"></param>
         /// <param name="dbName"></param>
         /// <returns></returns>
-        static string GetConnectionString(Configs.GenerateTableList config, string dbName)
+        static string GetConnectionString(Configs.InitialConfig config, string dbName)
         {
             string regexPattern = $".*Initial Catalog={dbName};.*";
             var regexOptions = RegexOptions.Multiline | RegexOptions.IgnoreCase;

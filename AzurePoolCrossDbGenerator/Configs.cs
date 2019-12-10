@@ -19,7 +19,7 @@ namespace AzurePoolCrossDbGenerator
             /// Add missing values from mergeFrom to this.
             /// </summary>
             /// <param name="mergeFrom"></param>
-            public GenericConfigEntry Merge(GenericConfigEntry mergeFrom)
+            public GenericConfigEntry Merge(GenericConfigEntry mergeFrom, bool overwrite = false)
             {
                 // get list of public fields
                 Type myType = mergeFrom.GetType();
@@ -31,7 +31,7 @@ namespace AzurePoolCrossDbGenerator
                     string name = field.Name;
                     string from = (string)myType.GetField(name).GetValue(mergeFrom);
                     string to = (string)myType.GetField(name).GetValue(this);
-                    if (to == null) myType.GetField(name).SetValue(this, from);
+                    if (to == null || (overwrite && from != null)) myType.GetField(name).SetValue(this, from);
                 }
 
                 return this;
@@ -40,30 +40,20 @@ namespace AzurePoolCrossDbGenerator
             /// <summary>
             /// Save a single config file. No overwrites.
             /// </summary>
-            public static void SaveConfigFile(string configType, string destFolder, string configContents)
+            public static void SaveConfigFile(string FileName, string configContents)
             {
-                string configPath = Path.Combine(destFolder, $"{configType}.json");
+                string currentDirectory = Directory.GetCurrentDirectory();
+
+                string configPath = Path.Combine(currentDirectory, FileName);
                 if (File.Exists(configPath))
                 {
-                    Console.WriteLine($"{configType} already exists.");
+                    Console.WriteLine($"{FileName} already exists.");
                 }
                 else
                 {
                     File.WriteAllText(configPath, configContents, System.Text.Encoding.UTF8);
-                    Console.WriteLine($"{configType} written.");
+                    Console.WriteLine($"{FileName} written.");
                 }
-            }
-
-            /// <summary>
-            /// Save a single config file. No overwrites.
-            /// </summary>
-            /// <param name="config"></param>
-            /// <param name="destFolder"></param>
-            /// <param name="configContents"></param>
-            public static void SaveConfigFile(Configs.GenericConfigEntry config, string destFolder, string configContents)
-            {
-                string configType = config.GetType().Name;
-                SaveConfigFile(configType, destFolder, configContents);
             }
 
         }
@@ -88,26 +78,24 @@ namespace AzurePoolCrossDbGenerator
             public string twoway;
         }
 
-        public class CreateMasterMirror : GenericConfigEntry
+        //public class CreateMasterMirror : GenericConfigEntry
+        //{
+        //    public string folder;
+        //    public string masterDB;
+        //    public string mirrorDB;
+        //    public string table;
+        //}
+
+        public class AllTables : GenericConfigEntry
         {
-            public string folder;
-            public string masterDB;
             public string mirrorDB;
-            public string table;
+            public string masterDB;
+            public string masterCS;
+            public string masterTable;
         }
 
-        public class CreateTable : GenericConfigEntry
+        public class InitialConfig : GenericConfigEntry
         {
-            public string folder;
-            public string localDB;
-            public string remoteDB;
-            public string remoteCS;
-            public string table;
-        }
-
-        public class GenerateTableList : GenericConfigEntry
-        {
-            public string folder;
             public string masterTables;
             public string mirrorDB;
             public string serverName;

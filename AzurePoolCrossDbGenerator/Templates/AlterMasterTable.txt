@@ -1,0 +1,11 @@
+-- 0 - mirrorDB
+-- 1 - masterDB
+-- 2 - masterTable
+-- 3 - table columns
+
+USE [{1}]
+GO
+
+ALTER TABLE dbo.[{2}] ADD
+	mirror_key UNIQUEIDENTIFIER NULL
+GO

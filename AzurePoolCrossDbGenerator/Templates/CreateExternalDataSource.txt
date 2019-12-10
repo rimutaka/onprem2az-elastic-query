@@ -4,6 +4,7 @@
 -- 3 - local credential name (shared between all remote DBs)
 
 USE [{0}]
+GO
 
 DROP EXTERNAL DATA SOURCE [RemoteDB_{1}]
 GO

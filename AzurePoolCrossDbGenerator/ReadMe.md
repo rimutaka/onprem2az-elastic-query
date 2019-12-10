@@ -5,19 +5,12 @@ This utility generates a set of scripts to enable existing MS SQL DBs to perform
 Use the following format: AzurePoolCrossDbGenerator [command] [config file name (use absolute path)]
 
 ## Commands
-* `config` - generates blank config files in TEMPLATES subfolder of the soluton
+* `init` - generates blank config files and copies script templates to the current folder
+* `config` - generates `TablesConfig.json` from `config.json` to establish links between DBs 
 * `key` - generates *CREATE MASTER KEY* statements 
 * `source` - generates *CREATE EXTERNAL DATA SOURCE* statements
-* `mirror` - generate SPs for master and mirror, ALT master table
-* `ext-table` - create external tables at either end
-* `mir-table` - create mirror tables at the mirror end
-* `tables` - generate a proper json config from a list of 3-part table names, one per line. 
-E.g.
-```
-central.dbo.tbt_EstimatedCategory 
-helpdesk.dbo.departments
-PBLCITI..TBR_CHANNEL_AGENCY
-```
+* `script` - generates a script using specified template name from *templates* sub-folder
+
 
 ## Config JSON files
 
@@ -62,7 +55,7 @@ Persist Security Info=False;User ID=sa;Password=sapwd;Initial Catalog=pblciti;Se
 Persist Security Info=False;User ID=sa;Password=sapwd;Initial Catalog=reporting;Server=.
 ```
 
-`mirrorDB` - name of the single DB that mirrors the tables in others. Usually it is the customer DB writing to shared DBs.
+`mirrorDB` - name of the single DB that mirrors tables from master DBs. Usually it is the customer DB writing to shared DBs.
 
 `masterTables` - a list of 3-part table names being remotely update from the *mirror DB*. One table per line. E.g.
 ```
@@ -70,8 +63,6 @@ central.dbo.tbt_EstimatedCategory
 helpdesk.dbo.departments
 PBLCITI..TBR_CHANNEL_AGENCY
 ```
-
-Use the output of `tables CreateTableList.json` to create external and mirror tables.
 
 ## Security
 

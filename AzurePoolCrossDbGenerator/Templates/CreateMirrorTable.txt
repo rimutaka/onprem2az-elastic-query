@@ -1,15 +1,21 @@
--- 0 - local DB name
--- 1 - remote table name
--- 2 - remote DB name
+-- Creates a table on Mirror that is identical to that on Master
+-- for local writes.
+
+-- 0 - mirrorDB
+-- 1 - masterDB
+-- 2 - masterTable
 -- 3 - table columns
 
 
 USE [{0}]
-DROP TABLE IF EXISTS {2}__{1}
 GO
 
-CREATE EXTERNAL TABLE {2}__{1}(
-	{3}
-)WITH ( DATA_SOURCE = [RemoteDB_{2}], SCHEMA_NAME = N'dbo', OBJECT_NAME = N'{1}')
+DROP TABLE IF EXISTS {1}__{2}
+GO
+
+CREATE TABLE {1}__{2}(
+	{3},
+	mirror_key UNIQUEIDENTIFIER NULL
+)
 
 GO

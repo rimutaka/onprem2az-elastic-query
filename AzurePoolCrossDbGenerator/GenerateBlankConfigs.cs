@@ -10,38 +10,52 @@ namespace AzurePoolCrossDbGenerator
         /// <summary>
         /// Write out blank config files for all known structures in class Configs.
         /// </summary>
-        /// <param name="destFolder"></param>
-        public static void GenerateBlankConfigs(string destFolder)
+        public static void GenerateBlankConfigs()
         {
-            // check the folder exists
-            if (!Directory.Exists(destFolder))
-            {
-                Console.WriteLine($"Invalid destination folder: {destFolder}");
-                return;
-            }
+            string currentDirectory = Directory.GetCurrentDirectory();
+            string configFolder = Path.Combine(currentDirectory, Program.FileNames.ConfigFolder);
 
-            Console.WriteLine($"Writing files to {destFolder}");
+            // create the folder if it doesn't exist
+            if (!Directory.Exists(configFolder)) Directory.CreateDirectory(configFolder);
 
-            // CreateMasterKey
+            Console.WriteLine($"Writing config files to {configFolder}");
+
+            // Create Master Key config
             Configs.GenericConfigEntry[] config = { new Configs.CreateMasterKey() };
-            Configs.GenericConfigEntry.SaveConfigFile(config[0], destFolder, JsonConvert.SerializeObject(config));
+            Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.MasterKeyConfig, JsonConvert.SerializeObject(config));
 
+            // Create data sources config
             config[0] = new Configs.CreateExternalDataSource();
-            Configs.GenericConfigEntry.SaveConfigFile(config[0], destFolder, JsonConvert.SerializeObject(config));
+            Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.ExternalDataSourceConfig, JsonConvert.SerializeObject(config));
 
-            config[0] = new Configs.CreateMasterMirror();
-            Configs.GenericConfigEntry.SaveConfigFile(config[0], destFolder, JsonConvert.SerializeObject(config));
+            // create the initial config file
+            config[0] = new Configs.InitialConfig();
+            Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.InitialConfig, JsonConvert.SerializeObject(config));
 
-            config[0] = new Configs.CreateTable();
-            Configs.GenericConfigEntry.SaveConfigFile(config[0], destFolder, JsonConvert.SerializeObject(config));
+            // copy all templates to the local templates folder
+            string templatesFolderDest = Path.Combine(currentDirectory, Program.FileNames.TemplatesFolder);
+            string templatesFolderSrc = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), Program.FileNames.TemplatesFolder);
 
-            config[0] = new Configs.GenerateTableList();
-            Configs.GenericConfigEntry.SaveConfigFile(config[0], destFolder, JsonConvert.SerializeObject(config));
+            if (!Directory.Exists(templatesFolderDest)) Directory.CreateDirectory(templatesFolderDest);
+            Console.WriteLine($"Writing template files to {templatesFolderDest}");
+
+
+
+            // Copy the files and overwrite destination files if they already exist.
+            foreach (string templateFile in Directory.GetFiles(templatesFolderSrc))
+            {
+                string templateFileNoPath = Path.GetFileName(templateFile);
+                string fileNameDest = Path.Combine(templatesFolderDest, templateFileNoPath);
+                if (File.Exists(fileNameDest))
+                {
+                    Console.WriteLine($"{templateFileNoPath} already exists.");
+                }
+                else
+                {
+                    File.Copy(templateFile, fileNameDest, false);
+                    Console.WriteLine($"{templateFileNoPath} written.");
+                }
+            }
         }
-
-
-
-
-
     }
 }

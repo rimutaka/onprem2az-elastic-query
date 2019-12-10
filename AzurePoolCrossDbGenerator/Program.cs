@@ -6,99 +6,63 @@ namespace AzurePoolCrossDbGenerator
 {
     class Program
     {
-        // List of known commands
-        public const string commandKey = "key", 
-            commandGenerateExternalDataSources = "source", 
-            commandGenerateBlankConfigFiles = "config", 
-            commandMirror = "mirror",
-            commandGenerateExternalTables = "ext-table",
-            commandGenerateMirrorTables = "mir-table",
-            commandGenerateListOfTablesConfig = "tables";
+
         public static readonly string templateFolder = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), @"Templates");
 
         static void Main(string[] args)
         {
             Console.WriteLine("AzurePoolCrossDbGenerator started.");
 
+            string command = (args.Length > 0) ? args[0]?.Trim().ToLower() : ""; // must be a valid command
+            string scriptTemplateFileName = (args.Length > 1) ? args[1] : ""; // full path to the config file to process
 
-
-            string command = (args.Length > 0) ? args[0]?.Trim().ToLower():""; // must be a valid command
-            string configFileName =(args.Length>1)?args[1]:""; // full path to the config file to process
-
-            // config command doesn't need a config file - process it first
-            if (command == commandGenerateBlankConfigFiles)
+            // validate the params
+            if (string.IsNullOrEmpty(command))
             {
-                Generators.GenerateBlankConfigs(configFileName);
-                PreExit();
-                return;
+                Console.WriteLine($"1. Check `readme.md` for usage instructions.");
+                Console.WriteLine($"2. Use `{Commands.GenerateBlankConfigFiles}` command to initialise the environment.");
+                Console.WriteLine($"3. Populate `{FileNames.InitialConfig}`, `{FileNames.MasterKeyConfig}` and `{FileNames.ExternalDataSourceConfig}` files.");
+                Console.WriteLine($"4. Use `{Commands.GenerateTablesConfigFile}` command to build the list of tables.");
+                Console.WriteLine($"5. Check if `{FileNames.TablesConfig}` file is correct.");
+                Console.WriteLine($"6. Use other commands to generate scripts.");
+                ExitApp();
             }
 
-            // check there are 2 args
-            if (string.IsNullOrEmpty(command) || string.IsNullOrEmpty(configFileName))
+            // check there are 2 args for generic script generation
+            if (command == Commands.GenericScriptGeneration && string.IsNullOrEmpty(scriptTemplateFileName))
             {
-                Console.WriteLine("Required format: [command] [path]. See readme.md for usage instructions.");
+                Console.WriteLine("Required format: generate [path to the template file]. See readme.md for usage instructions.");
                 return;
-            }
-
-            // use the current directory to look for the config file
-            configFileName = Path.Combine(Directory.GetCurrentDirectory(), configFileName);
-
-            // all other commands require a config file - check that it exists first
-            if (!System.IO.File.Exists(configFileName))
-            {
-                Console.WriteLine("2nd param is invalid. Must be a valid config file name.");
-                PreExit();
-                return;
-            }
-
-            // load the config file
-            string configJson=null;
-            if (!string.IsNullOrEmpty(configFileName))
-            {
-                try
-                {
-                    configJson = File.ReadAllText(configFileName);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Cannot read the config file: " + ex.Message);
-                    PreExit();
-                    return;
-                }
             }
 
             // call the handler for the command
             switch (command)
             {
-                case commandKey:
+                case Commands.GenerateMasterKeys:
                     {
-                        Generators.CreateMasterKey(configJson, templateFolder);
+                        Generators.CreateMasterKey(LoadConfigFile(FileNames.MasterKeyConfig), templateFolder);
                         break;
                     }
-                case commandGenerateExternalDataSources:
+                case Commands.GenerateExternalDataSources:
                     {
-                        Generators.CreateExternalDataSource(configJson, templateFolder);
+                        Generators.CreateExternalDataSource(LoadConfigFile(FileNames.ExternalDataSourceConfig), templateFolder);
                         break;
                     }
-                case commandMirror:
+                case Commands.GenerateBlankConfigFiles:
                     {
-                        Generators.CreateMaster(configJson, templateFolder);
+                        Generators.GenerateBlankConfigs();
                         break;
                     }
-                case commandGenerateExternalTables:
+                case Commands.GenerateTablesConfigFile:
                     {
-                        Generators.CreateExtTable(configJson, templateFolder);
+                        Generators.GenerateListOfTables(LoadConfigFile(FileNames.InitialConfig), templateFolder);
                         break;
                     }
-                case commandGenerateMirrorTables:
+                case Commands.GenericScriptGeneration:
                     {
-                        Generators.CreateMirrorTable(configJson, templateFolder);
-                        break;
-                    }
-                case  commandGenerateListOfTablesConfig:
-                    {
-                        Generators.GenerateListOfTables(configJson, templateFolder);
-                        break;
+                        //Generators.CreateMirrorTable(configJson, templateFolder);
+                        throw new Exception($"{Commands.GenericScriptGeneration} not implemented.");
+                        //break;
                     }
 
                 default:
@@ -108,21 +72,73 @@ namespace AzurePoolCrossDbGenerator
                     }
             }
 
-            PreExit();
+            ExitApp();
         }
+
+        /// <summary>
+        /// Load the config file or notify of problems and exit.
+        /// </summary>
+        /// <param name="configFileName"></param>
+        /// <returns></returns>
+        static string LoadConfigFile(string configFileName)
+        {
+            string fullPath = Path.Combine(Directory.GetCurrentDirectory(), configFileName);
+
+            // check if the file exists
+            if (!System.IO.File.Exists(fullPath))
+            {
+                Console.WriteLine($"Missing config file: {fullPath}. Use `config` command to initialise the environment.");
+                ExitApp();
+            }
+
+            // load the config file
+            string configJson = null;
+            try
+            {
+                configJson = File.ReadAllText(fullPath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Cannot read the config file: " + ex.Message);
+                ExitApp();
+            }
+
+            return configJson;
+        }
+
+
+
 
         /// <summary>
         /// Wait for any key before exiting.
         /// </summary>
-        static void PreExit ()
+        public static void ExitApp()
         {
             Console.WriteLine("Done. Press any key to exit");
             Console.ReadKey();
+            Environment.Exit(0);
         }
 
- 
 
-  
+        public class FileNames
+        {
+            public const string ConfigFolder = "config";
+            public const string TemplatesFolder = "templates";
+            public const string OutputFolder = "scripts";
+            public const string InitialConfig = "config/config.json";
+            public const string ExternalDataSourceConfig = "config/ExternalDataSourceConfig.json";
+            public const string TablesConfig = "config/TablesConfig.json";
+            public const string MasterKeyConfig = "config/MasterKeyConfig.json";
+        }
+
+        public class Commands
+        {
+            public const string GenerateMasterKeys = "keys";
+            public const string GenerateExternalDataSources = "sources";
+            public const string GenerateBlankConfigFiles = "init";
+            public const string GenerateTablesConfigFile = "config";
+            public const string GenericScriptGeneration = "script";
+        }
 
     }
 }
