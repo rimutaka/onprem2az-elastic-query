@@ -23,7 +23,6 @@ namespace AzurePoolCrossDbGenerator
             {
                 // merge with the previous full version of the config
                 sharedConfig = (Configs.CreateExternalDataSource)config[i].Merge(sharedConfig);
-                if (!Generators.IsDestFolderOK(config[i].folder, i)) continue;
 
                 // there may be 2 loops if it generates scripts for mutual access
                 for (int j = 0; j < 2; j++)
@@ -33,8 +32,7 @@ namespace AzurePoolCrossDbGenerator
                         config[i].localDB, config[i].externalDB,
                         config[i].serverName, config[i].credential);
 
-                    string outputFileName = Path.Combine(config[i].folder,
-                        $"CreateExtDataSrc_{config[i].localDB}_{config[i].externalDB}{fileExtSQL}");
+                    string outputFileName = $"CreateExtDataSrc_{config[i].localDB}__{config[i].externalDB}{fileExtSQL}";
 
                     Generators.SaveGeneratedScript(outputContents, outputFileName, i);
 

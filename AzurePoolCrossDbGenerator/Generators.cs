@@ -49,11 +49,25 @@ namespace AzurePoolCrossDbGenerator
         /// <param name="i"></param>
         static void SaveGeneratedScript(string outputContents, string outputFileName, int i)
         {
+            outputFileName = Path.Combine(Program.FileNames.OutputFolder, outputFileName);
+            string path = Path.Combine(Directory.GetCurrentDirectory(), outputFileName);
+
+            // create the destination folder if it doesn't exist
+            string scriptsFolder = Path.Combine(Directory.GetCurrentDirectory(), Program.FileNames.OutputFolder);
+            if (!Directory.Exists(scriptsFolder)) Directory.CreateDirectory(scriptsFolder);
+
+            // do not overwrite files for consistency
+            if (File.Exists(path))
+            {
+                Console.WriteLine($"#{(i + 1).ToString()} - {outputFileName} already exists.");
+                return;
+            }
+
             Console.WriteLine($"#{(i + 1).ToString()} - saving to {outputFileName}");
 
             try
             {
-                File.WriteAllText(outputFileName, outputContents, System.Text.Encoding.UTF8);
+                File.WriteAllText(path, outputContents, System.Text.Encoding.UTF8);
             }
             catch (Exception ex)
             {

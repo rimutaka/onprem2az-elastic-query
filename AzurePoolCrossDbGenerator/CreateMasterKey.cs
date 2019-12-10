@@ -23,12 +23,11 @@ namespace AzurePoolCrossDbGenerator
             {
                 // merge with the previous full version of the config
                 sharedConfig = (Configs.CreateMasterKey)config[i].Merge(sharedConfig);
-                if (!Generators.IsDestFolderOK(config[i].folder, i)) continue;
 
                 // interpolate
                 string outputContents = string.Format(templateContents, config[i].localDB, config[i].password, config[i].credential, config[i].identity, config[i].secret);
 
-                string outputFileName = Path.Combine(config[i].folder, $"CreateMasterKey_{config[i].localDB}{fileExtSQL}");
+                string outputFileName = $"CreateMasterKey_{config[i].localDB}{fileExtSQL}";
 
                 Generators.SaveGeneratedScript(outputContents, outputFileName, i);
             }

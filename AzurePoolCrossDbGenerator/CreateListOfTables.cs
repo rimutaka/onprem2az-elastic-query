@@ -18,7 +18,6 @@ namespace AzurePoolCrossDbGenerator
             Configs.InitialConfig config = JsonConvert.DeserializeObject<Configs.InitialConfig>(configJson);
 
             List<Configs.AllTables> tableList = new List<Configs.AllTables>(); // config for mirror tables
-            //List<Configs.AllTables> masterExtTableList = new List<Configs.AllTables>(); // config for master ext tables
 
             Configs.AllTables prevTable = new Configs.AllTables(); // a container for tracking changes
 
@@ -27,9 +26,6 @@ namespace AzurePoolCrossDbGenerator
             config.connections = config.connections.Replace("\r", "");
 
             var jsonSettings = new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore }; // ignore null properties
-
-            // extract the connection string from master to mirror
-            //string csToMirror = GetConnectionString(config, config.mirrorDB);
 
             foreach (string tableLine in config.masterTables.Split("\n"))
             {
@@ -51,7 +47,7 @@ namespace AzurePoolCrossDbGenerator
 
                 tableList.Add(tableItem); // add to the collection
 
-                prevTable.Merge(tableItem, true); // merge with overwrite
+                prevTable = (Configs.AllTables)tableItem.Merge(prevTable); // merge with overwrite
 
             }
 

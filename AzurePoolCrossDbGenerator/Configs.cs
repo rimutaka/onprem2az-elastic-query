@@ -19,7 +19,7 @@ namespace AzurePoolCrossDbGenerator
             /// Add missing values from mergeFrom to this.
             /// </summary>
             /// <param name="mergeFrom"></param>
-            public GenericConfigEntry Merge(GenericConfigEntry mergeFrom, bool overwrite = false)
+            public GenericConfigEntry Merge(GenericConfigEntry mergeFrom)
             {
                 // get list of public fields
                 Type myType = mergeFrom.GetType();
@@ -31,7 +31,7 @@ namespace AzurePoolCrossDbGenerator
                     string name = field.Name;
                     string from = (string)myType.GetField(name).GetValue(mergeFrom);
                     string to = (string)myType.GetField(name).GetValue(this);
-                    if (to == null || (overwrite && from != null)) myType.GetField(name).SetValue(this, from);
+                    if (to == null) myType.GetField(name).SetValue(this, from);
                 }
 
                 return this;
@@ -60,7 +60,6 @@ namespace AzurePoolCrossDbGenerator
 
         public class CreateMasterKey : GenericConfigEntry
         {
-            public string folder;
             public string localDB;
             public string password;
             public string credential;
@@ -70,7 +69,6 @@ namespace AzurePoolCrossDbGenerator
 
         public class CreateExternalDataSource : GenericConfigEntry
         {
-            public string folder;
             public string localDB;
             public string externalDB;
             public string serverName;
