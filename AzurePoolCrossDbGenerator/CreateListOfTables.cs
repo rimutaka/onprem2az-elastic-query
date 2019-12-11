@@ -49,6 +49,15 @@ namespace AzurePoolCrossDbGenerator
 
                 prevTable.Merge(tableItem, true); // merge with overwrite
 
+                // check if the table exists in Master DB
+                string tableCols = DbAccess.GetTableColumns(prevTable.masterCS, prevTable.masterTable);
+                if (string.IsNullOrEmpty(tableCols))
+                {
+                    Console.WriteLine();
+                    Console.WriteLine($"Missing table definition for {prevTable.masterDB}..{prevTable.masterTable}");
+                    Program.ExitApp();
+                }
+
             }
 
             // convert to arrays for serializing

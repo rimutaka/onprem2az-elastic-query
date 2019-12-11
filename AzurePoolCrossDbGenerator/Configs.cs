@@ -95,6 +95,7 @@ namespace AzurePoolCrossDbGenerator
             public string secret;
             public string twoway;
             public string connections;
+            public string localServer;
         }
 
     }

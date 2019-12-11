@@ -63,6 +63,11 @@ namespace AzurePoolCrossDbGenerator
                         Generators.GenerateScript(LoadConfigFile(FileNames.TablesConfig), scriptTemplateFileName);
                         break;
                     }
+                case Commands.GenerateSqlCmdBatch:
+                    {
+                        Generators.GenerateSqlCmdBatch(LoadConfigFile(FileNames.InitialConfig), scriptTemplateFileName);
+                        break;
+                    }
 
                 default:
                     {
@@ -137,6 +142,7 @@ namespace AzurePoolCrossDbGenerator
             public const string GenerateBlankConfigFiles = "init";
             public const string GenerateTablesConfigFile = "config";
             public const string GenericScriptGeneration = "template";
+            public const string GenerateSqlCmdBatch = "sqlcmd";
         }
 
     }

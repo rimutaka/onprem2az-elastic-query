@@ -81,5 +81,26 @@ namespace AzurePoolCrossDbGenerator
                 Console.WriteLine(ex.Message);
             }
         }
+
+        static void SaveFile(string outputContents, string outputFullName)
+        {
+            // do not overwrite files for consistency
+            if (File.Exists(outputFullName))
+            {
+                Console.WriteLine($"#{outputFullName} already exists.");
+                Program.ExitApp();
+            }
+
+            Console.WriteLine($"Saving to {outputFullName}");
+
+            try
+            {
+                File.WriteAllText(outputFullName, outputContents, System.Text.Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
     }
 }

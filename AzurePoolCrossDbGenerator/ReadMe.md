@@ -10,6 +10,7 @@ Use the following format: AzurePoolCrossDbGenerator [command] [config file name 
 * `key` - generates *CREATE MASTER KEY* statements 
 * `source` - generates *CREATE EXTERNAL DATA SOURCE* statements
 * `script` - generates a script using specified template. Accepts a file name from *templates* sub-folder or a fully-qualified file name.
+* `sqlcmd` - prepare a batch file for executing all files in the current directory with *SqlCmd* utility.
 
 ## Folder structure
 `./config` - all the config files. The names are hardcoded.
@@ -69,6 +70,8 @@ central.dbo.tbt_EstimatedCategory
 helpdesk.dbo.departments
 PBLCITI..TBR_CHANNEL_AGENCY
 ```
+
+`localServer` - name of the server to include into *SqlCmd* scripts.
 
 ## Script templates
 

@@ -27,7 +27,18 @@ namespace AzurePoolCrossDbGenerator
                 sharedConfig = (Configs.AllTables)config[i].Merge(sharedConfig);
 
                 // get the column list if there is {3} group in the template
-                string tableCols =(templateContents.Contains("{3}")) ? DbAccess.GetTableColumns(config[i].masterCS, config[i].masterTable) : null;
+                string tableCols = null;
+                if (templateContents.Contains("{3}")) {
+                    tableCols= DbAccess.GetTableColumns(config[i].masterCS, config[i].masterTable); 
+                
+                    if (string.IsNullOrEmpty(tableCols))
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine($"Missing table definition for {config[i].masterDB}..{config[i].masterTable}");
+                        Program.ExitApp();
+                    }
+                
+                }
 
                 // interpolate
                 string outputContents = string.Format(templateContents, config[i].mirrorDB, config[i].masterDB, config[i].masterTable, tableCols);

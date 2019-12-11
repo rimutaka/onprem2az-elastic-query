@@ -16,8 +16,8 @@ namespace AzurePoolCrossDbGenerator
         public static string GetTableColumns(string connectionString, string tableName)
         {
             const string trailingChars = "\r\n,";
-            List<String> numericDataTypes =new List<string>();
-            numericDataTypes.AddRange(new string[] {"numeric", "decimal"});
+            List<String> numericDataTypes = new List<string>();
+            numericDataTypes.AddRange(new string[] { "numeric", "decimal" });
 
             string queryString = @"select COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE 
                 from INFORMATION_SCHEMA.COLUMNS
@@ -43,7 +43,15 @@ namespace AzurePoolCrossDbGenerator
                         string colScale = reader["NUMERIC_SCALE"].ToString();
 
                         // convert len to max for -1 value
-                        if (colLen == "-1") colLen = "max";
+                        if (colLen == "-1")
+                        {
+                            colLen = "max";
+                        }
+                        else if (!string.IsNullOrEmpty(colLen) && long.Parse(colLen) > 8000)
+                        {
+                            colLen = null;
+                            colType = "text";
+                        }
 
                         // text types have length - nvarchar(255)
                         if (!String.IsNullOrEmpty(colLen)) colType += $"({colLen})";
