@@ -17,7 +17,7 @@ namespace AzurePoolCrossDbGenerator
             string rootFolder = Path.GetDirectoryName(changeListFileName); // the input file should be in the root folder
 
             // .bat file name
-            string batFileName = Path.GetFileNameWithoutExtension(changeListFileName) + ".bat";
+            string batFileName = Path.GetFileNameWithoutExtension(changeListFileName) + ".ps1";
             batFileName = Path.Combine(rootFolder, batFileName);
 
             // do not overwrite files for consistency
@@ -64,7 +64,7 @@ namespace AzurePoolCrossDbGenerator
                 }
 
                 // get individual values
-                string sqlFileName = match.Groups[1]?.Value?.ToLower();
+                string sqlFileName = match.Groups[1]?.Value;
                 string dbName = match.Groups[2]?.Value;
                 int lineNumber = (int.TryParse(match.Groups[3]?.Value, out lineNumber)) ? lineNumber - 1 : -1;
                 string sqlStatement = match.Groups[4]?.Value;
@@ -76,9 +76,21 @@ namespace AzurePoolCrossDbGenerator
                     continue;
                 }
 
-                // prepare the replacement line
-                string replaceRegex = $@"\[?{dbName}\]?\.\[?(?:dbo)?\]?\.(?=\[?(\w*)\]?)";
-                string sqlStatementNew = Regex.Replace(sqlStatement, replaceRegex, "", regexOptions);
+                // get the schema, if any, for the object in question
+                string replaceRegex = $@"\[?{dbName}\]?\.\[?(\w*)?\]?\.(?=\[?(\w*)\]?)";
+                match = Regex.Match(sqlStatement, replaceRegex, regexOptions);
+                if (!match.Success)
+                {
+                    Console.WriteLine($"Cannot extract semantic parts from line {inLineNumber}:\n {sqlStatement}\n with {replaceRegex}");
+                    continue;
+                }
+
+                // it can be .. or dbo.
+                string schema = match.Groups[1]?.Value;
+                if (!string.IsNullOrEmpty(schema)) schema += ".";
+
+                // prepare the new SQL statement
+                string sqlStatementNew = Regex.Replace(sqlStatement, replaceRegex, schema, regexOptions);
 
                 // log the output
                 Console.WriteLine();
@@ -120,7 +132,7 @@ namespace AzurePoolCrossDbGenerator
                 // write out the file
                 File.WriteAllLines(sqlFileName, sqlLines, System.Text.Encoding.UTF8);
 
-                AddToBatFileList(sqlFileName, dbName, false, sqlFiles, sqlDBs,sqlFilesCommentOut);
+                AddToBatFileList(sqlFileName, dbName, false, sqlFiles, sqlDBs, sqlFilesCommentOut);
             }
 
             // prepare .bat file
@@ -130,8 +142,9 @@ namespace AzurePoolCrossDbGenerator
             // loop thru the files
             for (int i = 0; i < sqlFiles.Count; i++)
             {
-                string commentOut = (sqlFilesCommentOut[i]) ? " REM " : "";
-                    sb.AppendLine($"{commentOut}sqlcmd -S {serverName} -d {sqlDBs[i]} -i \"{sqlFiles[i]}\"");
+                string commentOut = (sqlFilesCommentOut[i]) ? "#" : "";
+                sb.AppendLine($"{commentOut}sqlcmd -b -S {serverName} -d {sqlDBs[i]} -i \"{sqlFiles[i]}\"");
+                sb.AppendLine($"{commentOut}if ($LASTEXITCODE -eq 0) {{git -C {sqlDBs[i]} add \"{sqlFiles[i]}\"}}");
             }
 
             sb.AppendLine(); // an empty line at the end to execute the last statement
@@ -157,7 +170,7 @@ namespace AzurePoolCrossDbGenerator
         /// <param name="dbName"></param>
         /// <param name="sqlFiles"></param>
         /// <param name="sqlDBs"></param>
-        static void AddToBatFileList (string sqlFileName, string dbName, bool CommentOut, List<string> sqlFiles, List<string> sqlDBs, List<bool> sqlFileCommentOut)
+        static void AddToBatFileList(string sqlFileName, string dbName, bool CommentOut, List<string> sqlFiles, List<string> sqlDBs, List<bool> sqlFileCommentOut)
         {
             // save the file name for .bat generation
             if (!sqlFiles.Contains(sqlFileName))
