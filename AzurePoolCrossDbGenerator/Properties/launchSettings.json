@@ -1,9 +1,0 @@
-{
-    "profiles": {
-        "AzurePoolCrossDbGenerator": {
-            "commandName": "Project",
-            "commandLineArgs": "selfref C:\\Users\\max\\Documents\\Projects\\upwork\\CitiSwiss\\migration-repo\\self-refs-log.txt",
-            "workingDirectory": "C:\\Users\\max\\Documents\\Projects\\upwork\\CitiSwiss\\migration-repo\\migration-scripts\\insert-update\\"
-        }
-    }
-}
