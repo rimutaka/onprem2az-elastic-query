@@ -68,7 +68,11 @@ namespace AzurePoolCrossDbGenerator
                         Generators.GenerateSqlCmdBatch(LoadConfigFile(FileNames.InitialConfig), scriptTemplateFileName);
                         break;
                     }
-
+                case Commands.RemoveSelfReferences:
+                    {
+                        Generators.RemoveSelfRefs(LoadConfigFile(FileNames.InitialConfig), scriptTemplateFileName);
+                        break;
+                    }
                 default:
                     {
                         Console.WriteLine("Wrong command. See readme.md for usage instructions.");
@@ -143,6 +147,7 @@ namespace AzurePoolCrossDbGenerator
             public const string GenerateTablesConfigFile = "config";
             public const string GenericScriptGeneration = "template";
             public const string GenerateSqlCmdBatch = "sqlcmd";
+            public const string RemoveSelfReferences = "selfref";
         }
 
     }

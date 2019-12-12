@@ -11,6 +11,7 @@ Use the following format: AzurePoolCrossDbGenerator [command] [config file name 
 * `source` - generates *CREATE EXTERNAL DATA SOURCE* statements
 * `script` - generates a script using specified template. Accepts a file name from *templates* sub-folder or a fully-qualified file name.
 * `sqlcmd` - prepare a batch file for executing all files in the current directory with *SqlCmd* utility.
+* `selfref` - removes all DB self-references and prepares a batch file for executing modified files with *SqlCmd* utility.
 
 ## Folder structure
 `./config` - all the config files. The names are hardcoded.
@@ -106,3 +107,49 @@ So we need to update the DBs to using *ElasticQuery*, but it is not possible wit
 
 The workaround is to create temporary tables and SPs with the same names as the external tables and no references to external data sources.
 Then we can update all existing cross-DB references with the new local ones, import into Azure and then replace the dummy objects with the proper ones.
+
+# Modifying files in bulk
+
+## Directory structure
+
+All exported DB scripts should be checked into a repo and comply with this structure for script modifications to work: 
+
+- /root/
+ -/db name/
+  -/script file name.sql/
+
+Script file names should follow the default SSMS exported script convension. E.g. `dbo.MyUserFunctionMane.UserDefinedFunction.sql`.
+
+## Remove self-references
+
+There may be 3-part names in SQL statements that refer to the same DB they are in. E.g. DB `PBLCITI_LOCATION` may have a statement like this:
+```
+select * from PBLCITI_LOCATION..TBR_AgencyObjectType
+```
+
+It is redundant and is not allowed under Azure SQL rules. Use `selfref` command to remove all DB self-references.
+
+1. Use `grep` to find all self references and output them into a file
+
+```
+grep -i -n 'db_name\.' ./db_name/*.sql > self-refs.txt
+grep -i -n '\[db_name\]\.' ./db_name/*.sql >> self-refs.txt
+```
+The output file name `self-refs.txt` is arbitrary. Name it anything you like.
+
+2. Review `self-refs.txt` and remove lines that don't need modifications. E.g. line #1 in this example doesn't need any mods:
+```
+./citi_ip_country/CITI_IP_COUNTRY.Database.sql:6:( NAME = N'CITI_IP_COUNTRY_data', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL13.MSSQLSERVER\MSSQL\DATA\CITI_IP_COUNTRY.mdf' , SIZE = 458432KB , MAXSIZE = UNLIMITED, FILEGROWTH = 1024KB )
+./citi_ip_country/dbo.GetRentalpCountryCodeByIpNumber.UserDefinedFunction.sql:18:	from	citi_ip_country..tb_ip p, citi_ip_country..tb_location c
+```
+
+3. Place `self-refs.txt` in the root folder of all the DB scripts listed in it.
+
+4. Use `selfref absolute-path-to-self-refs.txt` from the root folder of the utility.
+This command will modify all files listed in `self-refs.txt` and create `self-refs.bat` to help you execute all modified files in one step.
+
+5. Carefully diff the changes and commit.
+
+6. Run `self-refs.bat`.
+
+7. Review the output.
