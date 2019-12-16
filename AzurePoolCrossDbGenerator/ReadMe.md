@@ -9,16 +9,47 @@ Use the following format: AzurePoolCrossDbGenerator [command] [config file name 
 * `config` - generates `TablesConfig.json` from `config.json` to establish links between DBs 
 * `key` - generates *CREATE MASTER KEY* statements 
 * `source` - generates *CREATE EXTERNAL DATA SOURCE* statements
-* `template` - generates a script using specified template. Accepts a file name from *templates* sub-folder or a fully-qualified file name.
-* `sqlcmd` - prepare a batch file for executing all files in the specified directory with *SqlCmd* utility. Omit the path to process all subdirectories under `script`.
-* `selfref` - removes all DB self-references and prepares a batch file for executing modified files with *SqlCmd* utility.
+* `template template_name` - generates a script using specified template. Accepts a file name from *templates* sub-folder or a fully-qualified file name.
+* `sqlcmd path_to_folder` - prepare a batch file for executing all files in the specified directory with *SqlCmd* utility. Omit the path to process all subdirectories under `script`.
+* `selfref path_to_grep.txt` - removes all DB self-references and prepares a batch file for executing modified files with *SqlCmd* utility.
+* `insertref path_to_grep.txt` - converts 3-part names to a single mirror table name following *INSERT INTO* in all *.sql* files under the path of the 2nd param.
 
-## Folder structure
-`./config` - all the config files. The names are hardcoded.
-`./scripts` - output directory for script generation.
-`./templates` - a default location for script templates
+**IMPORTANT**: Existing files are never overwritten.
 
-Existing files are never overwritten.
+### Parameters
+* `template_name` - name of the file inside `./templates` folder
+* `path_to_grep.txt` - an absolute path or relative to the grep output with all the references located in the root folder of all the DB scripts.
+
+## App folder structure
+This program expects to find some files in predefined subfolders relative to the current working directory.
+
+* `./config` - all the config files. The names of the files are hardcoded and should not be changed.
+* `./scripts` - output directory for script generation.
+* `./templates` - a default location for script templates
+
+
+## Usage
+
+There is a great chance that you will need to modify the source code to fit your unique situation.
+It may be easier to create a shortcut in your working folder pointing to `\bin\Debug\netcoreapp3.0\AzurePoolCrossDbGenerator.exe`.
+
+* Shortcut name: `azpm`
+* Start in: `.` to make it run in the current directory of the command line
+
+
+### Step 1: initialise the environment
+
+Run `azpm init` to create blank config files. In most cases you only need to fill in details of `config.json`and delete the rest of the files.
+The config files you delete will be regenerated with values from `config.json` at the next step.
+
+The app will copy template files to your working directory. You can modify them as needed.
+
+### Step 2: generate config
+
+Run `azpm config` to generate config files based on the values in `config.json`. In most cases it all you need to get going.
+
+
+
 
 ## Config JSON files
 
@@ -91,12 +122,17 @@ You may want to change the code to generate the cred names automatically.
 
 ## Applying the scripts
 
-1. Master key
-2. Data sources
-3. ALT master table
-4. Create mirrors
-5. Create ext tables
-6. Create SPs at both ends
+Follow these steps. There are certain constaints that force this order onto us.
+
+1. Create mirrors
+2. ALT master table - *remove mirror_key field from mirror table template if creating mirrors after altering master tables*.
+3. Create dummy ext tables - *it's hard to create valid ext tables on-prem, so just create dummy ones as an interface*.
+4. Create dummy SPs at both ends - *no body because ext tables are not ready and a remote call doesn't work on-prem*.
+5. Move the DB to Azure Pool
+6. Add Master Keys
+7. Add Ext Data Sources - *ths and following steps can only be done on Azure*.
+8. Replace dummy ext tables with real ext tables
+9. Replace dummy SPs with real SPs
 
 ## Bootsrapping DB export for Azure SQL Pool
 
@@ -112,6 +148,7 @@ Then we can update all existing cross-DB references with the new local ones, imp
 
 ## Directory structure
 
+This program modifies *.sql* scripts exported from the DBs you are migrating. 
 All exported DB scripts should be checked into a repo and comply with this structure for script modifications to work: 
 
 - /root/
@@ -154,7 +191,22 @@ This command will modify all files listed in `self-refs.txt` and create `self-re
 
 7. Review the output.
 
-## INSERT INTO column mismatch
+## Replace INSERT INTO 3-part names with mirror tables
+
+E.g. `insert into citi_reporting.dbo.tb_site` -> `insert into mr_citi_reporting__tb_site` where both tables have the same signature.
+
+1. Use `grep` to extract all 3-part names after INSERT INTO. Run it on all the SQL files for all DBs.
+```
+grep -i -r -n --include '*.sql'  -E '\binsert\s*into\s*\[?CITI_\w+\]?\.\[?\w*\]?\.\[?\w*\]?' . > cross-db-insert-grep.txt
+```
+This example uses common DB prefix `CITI_`, which was specific to a particular project. Modify the Regex to suit yours.
+
+2. Clean up the grep output to remove commented out lines, false positives and files like *Database.sql*.
+3. Remove references to lines where INSERT INTO is followed by SELECT ... FROM 3-part-name in the same line. Those have to be dealt with separately.
+
+
+
+### INSERT INTO column mismatch
 
 A common error is that the column names are not listed and it does *INSERT INTO ... SELECT * FROM ...*,
 but `mirror_key` field is left unaccounted for. Add the following at the end of the list of select columns `NULL -- required for mirror_key column`.
