@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Remove="CreateExtTable.cs" />
     <Compile Remove="CreateMasterMirror.cs" />
+    <Compile Remove="RemoveSelfRefs.cs" />
   </ItemGroup>
 
   <ItemGroup>

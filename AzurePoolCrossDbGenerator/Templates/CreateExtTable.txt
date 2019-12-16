@@ -9,10 +9,10 @@
 USE [{1}]
 GO
 
---DROP EXTERNAL TABLE ext_{0}__{2}_ext
+--DROP EXTERNAL TABLE ext_{0}__{2}
 GO
 
-CREATE EXTERNAL TABLE ext_{0}__{2}_ext(
+CREATE EXTERNAL TABLE ext_{0}__{2}(
 	{3},
 	mirror_key UNIQUEIDENTIFIER NULL
 )WITH ( DATA_SOURCE = RemoteDB_{0}, SCHEMA_NAME = N'dbo', OBJECT_NAME = N'mr_{1}__{2}')

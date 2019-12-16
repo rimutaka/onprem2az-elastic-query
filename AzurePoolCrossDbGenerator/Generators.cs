@@ -88,7 +88,7 @@ namespace AzurePoolCrossDbGenerator
             if (File.Exists(outputFullName))
             {
                 Console.WriteLine($"#{outputFullName} already exists.");
-                Program.ExitApp();
+                Program.ExitApp(2);
             }
 
             Console.WriteLine($"Saving to {outputFullName}");
@@ -102,5 +102,13 @@ namespace AzurePoolCrossDbGenerator
                 Console.WriteLine(ex.Message);
             }
         }
+
+        /// <summary>
+        /// Defines a delegate for functions that return a new name for a 3-part object name
+        /// </summary>
+        /// <returns></returns>
+        public delegate string GetNew3PartObjectName (string dbName, string schemaPart, string tablePart, Configs.SearchAndReplace config);
+
+
     }
 }

@@ -9,10 +9,23 @@ namespace AzurePoolCrossDbGenerator
     partial class Generators
     {
 
+        #region "Constants"
+
+        public static RegexOptions regexOptions_im = RegexOptions.IgnoreCase | RegexOptions.Multiline;
+
         /// <summary>
-        /// Removes all DB self-references and prepares a batch file for executing modified files with *SqlCmd* utility.
+        /// E.g. ./citi_4vallees/dbo.ADD_MANUALRESERVATION_IN_CITI_STATS.StoredProcedure.sql:33:	INSERT INTO mr_CITI_STATS__TB_MANUALRESERVATION
         /// </summary>
-        public static void RemoveSelfRefs(string configJson, string changeListFileName)
+        const string REGEX_GREP_PARTS = @"^(\.\/([^\/]*)[^:]*):(\d*):(.*)$";
+
+        #endregion
+
+        #region "Generic replacement functions"
+
+        /// <summary>
+        /// Replace all cross-DB refs and prepares a batch file for executing modified files with *SqlCmd* utility.
+        /// </summary>
+        public static void SearchAndReplace(string configJson, string changeListFileName, GetNew3PartObjectName getNew3PartObjectName)
         {
             string rootFolder = Path.GetDirectoryName(changeListFileName); // the input file should be in the root folder
 
@@ -24,11 +37,11 @@ namespace AzurePoolCrossDbGenerator
             if (File.Exists(batFileName))
             {
                 Console.WriteLine($"{batFileName} already exists.");
-                Program.ExitApp();
+                Program.ExitApp(2);
             }
 
             // load config data
-            Configs.InitialConfig config = JsonConvert.DeserializeObject<Configs.InitialConfig>(configJson);
+            Configs.SearchAndReplace config = JsonConvert.DeserializeObject<Configs.SearchAndReplace>(configJson);
 
             // check if we have the server name
             string serverName = config.localServer;
@@ -37,10 +50,6 @@ namespace AzurePoolCrossDbGenerator
                 Console.WriteLine("Missing `localServer` param in `/config/config.json`");
                 Program.ExitApp();
             }
-
-            // shared regex options
-            const string REGEX_PARTS = @"^(\.\/([^\/]*)[^:]*):(\d*):(.*)$";
-            RegexOptions regexOptions = RegexOptions.IgnoreCase | RegexOptions.Multiline;
 
             // list of all files and DBs to add to SQL CMD
             List<string> sqlFiles = new List<string>();
@@ -56,10 +65,10 @@ namespace AzurePoolCrossDbGenerator
 
                 // get all the parts of the string
                 // e.g. ./citi_ip_country/dbo.GetRentalpCountryCodeByIpNumber.UserDefinedFunction.sql:18:	from	citi_ip_country..tb_ip p, citi_ip_country..tb_location c
-                var match = Regex.Match(inLine, REGEX_PARTS, regexOptions);
+                var match = Regex.Match(inLine, REGEX_GREP_PARTS, regexOptions_im);
                 if (!match.Success || match.Groups.Count != 5)
                 {
-                    Console.WriteLine($"Cannot extract semantic parts from line {inLineNumber}:\n {inLine}\n with {REGEX_PARTS}");
+                    Console.WriteLine($"Cannot extract semantic parts from line {inLineNumber}:\n {inLine}\n with {REGEX_GREP_PARTS}");
                     continue;
                 }
 
@@ -72,25 +81,22 @@ namespace AzurePoolCrossDbGenerator
                 // check if any of the values are incorrect
                 if (string.IsNullOrEmpty(sqlFileName) || string.IsNullOrEmpty(dbName) || string.IsNullOrEmpty(sqlStatement) || lineNumber < 0)
                 {
-                    Console.WriteLine($"Cannot extract semantic parts from this line:\n {inLine}\n with {REGEX_PARTS}");
+                    Console.WriteLine($"Cannot extract semantic parts from this line:\n {inLine}\n with {REGEX_GREP_PARTS}");
                     continue;
                 }
 
-                // get the schema, if any, for the object in question
-                string replaceRegex = $@"\[?{dbName}\]?\.\[?(\w*)?\]?\.(?=\[?(\w*)\]?)";
-                match = Regex.Match(sqlStatement, replaceRegex, regexOptions);
-                if (!match.Success)
+                // extract all 3 parts from the 3-part name
+                string threePartRegex = $@"\[?(CITI_\w*)\]?\.\[?(\w*)\]?\.\[?(\w*)\]?";
+                match = Regex.Match(sqlStatement, threePartRegex, regexOptions_im);
+                if (!match.Success || match.Groups.Count != 4)
                 {
-                    Console.WriteLine($"Cannot extract semantic parts from line {inLineNumber}:\n {sqlStatement}\n with {replaceRegex}");
+                    Console.WriteLine($"Cannot extract semantic parts from line {inLineNumber}:\n {sqlStatement}\n with {threePartRegex}");
                     continue;
                 }
-
-                // it can be .. or dbo.
-                string schema = match.Groups[1]?.Value;
-                if (!string.IsNullOrEmpty(schema)) schema += ".";
 
                 // prepare the new SQL statement
-                string sqlStatementNew = Regex.Replace(sqlStatement, replaceRegex, schema, regexOptions);
+                string sqlObjectNameNew = getNew3PartObjectName(match.Groups[1]?.Value, match.Groups[2]?.Value, match.Groups[3]?.Value, config);
+                string sqlStatementNew = Regex.Replace(sqlStatement, threePartRegex, sqlObjectNameNew, regexOptions_im);
 
                 // log the output
                 Console.WriteLine();
@@ -138,13 +144,17 @@ namespace AzurePoolCrossDbGenerator
             // prepare .bat file
 
             var sb = new System.Text.StringBuilder();
+            int rootPathLength = rootFolder.Length + 1;
+
 
             // loop thru the files
             for (int i = 0; i < sqlFiles.Count; i++)
             {
+                string sqlCmdFileName = sqlFiles[i].Remove(0, rootPathLength);
+                string gitFileName = Path.GetFileName(sqlFiles[i]);
                 string commentOut = (sqlFilesCommentOut[i]) ? "#" : "";
-                sb.AppendLine($"{commentOut}sqlcmd -b -S {serverName} -d {sqlDBs[i]} -i \"{sqlFiles[i]}\"");
-                sb.AppendLine($"{commentOut}if ($LASTEXITCODE -eq 0) {{git -C {sqlDBs[i]} add \"{sqlFiles[i]}\"}}");
+                sb.AppendLine($"{commentOut}sqlcmd -b -S {serverName} -d {sqlDBs[i]} -i \"{sqlCmdFileName}\"");
+                sb.AppendLine($"{commentOut}if ($LASTEXITCODE -eq 0) {{git -C {sqlDBs[i]} add \"{gitFileName}\"}}");
             }
 
             sb.AppendLine(); // an empty line at the end to execute the last statement
@@ -164,6 +174,56 @@ namespace AzurePoolCrossDbGenerator
         }
 
 
+        /// <summary>
+        /// Save the file and DB name for SQLCMD generation
+        /// </summary>
+        /// <param name="sqlFileName"></param>
+        /// <param name="dbName"></param>
+        /// <param name="sqlFiles"></param>
+        /// <param name="sqlDBs"></param>
+        static void AddToBatFileList(string sqlFileName, string dbName, bool CommentOut, List<string> sqlFiles, List<string> sqlDBs, List<bool> sqlFileCommentOut)
+        {
+            // save the file name for .bat generation
+            if (!sqlFiles.Contains(sqlFileName))
+            {
+                sqlFiles.Add(sqlFileName);
+                sqlDBs.Add(dbName.ToLower());
+                sqlFileCommentOut.Add(CommentOut);
+            }
+        }
+
+        #endregion
+
+        #region "Replacement specific replacements"
+
+        /// <summary>
+        /// Returns a name of a mirror table for INSERT INTO replacement  
+        /// </summary>
+        public static string GetNewObjectNameInsert(string dbName, string schemaPart, string tablePart, Configs.SearchAndReplace config)
+        {
+
+            // prepare the new SQL object name
+            string sqlObjectNameNew = string.Format(config.nameMirror, dbName, schemaPart, tablePart);
+
+            return sqlObjectNameNew;
+        }
+
+        /// <summary>
+        /// Returns a name of self-references replacement, e.g. mydb.dbo.mytable within mydb DB.
+        /// </summary>
+        public static string GetNewObjectNameSelfRefs(string dbName, string schemaPart, string tablePart, Configs.SearchAndReplace config)
+        {
+
+            // schemaPart can be .. or dbo.
+            if (!string.IsNullOrEmpty(schemaPart)) schemaPart += ".";
+
+            // prepare the new SQL object name
+            string sqlObjectNameNew = string.Format(config.patternSelfRefs, dbName, schemaPart, tablePart);
+
+            return sqlObjectNameNew;
+        }
+
+        #endregion
 
     }
 }

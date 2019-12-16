@@ -9,8 +9,8 @@ Use the following format: AzurePoolCrossDbGenerator [command] [config file name 
 * `config` - generates `TablesConfig.json` from `config.json` to establish links between DBs 
 * `key` - generates *CREATE MASTER KEY* statements 
 * `source` - generates *CREATE EXTERNAL DATA SOURCE* statements
-* `script` - generates a script using specified template. Accepts a file name from *templates* sub-folder or a fully-qualified file name.
-* `sqlcmd` - prepare a batch file for executing all files in the current directory with *SqlCmd* utility.
+* `template` - generates a script using specified template. Accepts a file name from *templates* sub-folder or a fully-qualified file name.
+* `sqlcmd` - prepare a batch file for executing all files in the specified directory with *SqlCmd* utility. Omit the path to process all subdirectories under `script`.
 * `selfref` - removes all DB self-references and prepares a batch file for executing modified files with *SqlCmd* utility.
 
 ## Folder structure
@@ -153,3 +153,8 @@ This command will modify all files listed in `self-refs.txt` and create `self-re
 6. Run `self-refs.bat`.
 
 7. Review the output.
+
+## INSERT INTO column mismatch
+
+A common error is that the column names are not listed and it does *INSERT INTO ... SELECT * FROM ...*,
+but `mirror_key` field is left unaccounted for. Add the following at the end of the list of select columns `NULL -- required for mirror_key column`.

@@ -98,5 +98,13 @@ namespace AzurePoolCrossDbGenerator
             public string localServer;
         }
 
+        public class SearchAndReplace : GenericConfigEntry
+        {
+            public string localServer;
+            public string patternSelfRefs = "{1}.{2}";
+            public string nameMirror = "mr_{0}__{2}";
+            public string nameExtTable = "ext_{0}__{2}";
+
+        }
     }
 }

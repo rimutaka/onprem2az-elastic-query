@@ -70,7 +70,12 @@ namespace AzurePoolCrossDbGenerator
                     }
                 case Commands.RemoveSelfReferences:
                     {
-                        Generators.RemoveSelfRefs(LoadConfigFile(FileNames.InitialConfig), scriptTemplateFileName);
+                        Generators.SearchAndReplace(LoadConfigFile(FileNames.SearchAndReplaceConfig), scriptTemplateFileName, Generators.GetNewObjectNameSelfRefs);
+                        break;
+                    }
+                case Commands.RemoveInsertReferences:
+                    {
+                        Generators.SearchAndReplace(LoadConfigFile(FileNames.SearchAndReplaceConfig), scriptTemplateFileName, Generators.GetNewObjectNameInsert);
                         break;
                     }
                 default:
@@ -80,7 +85,7 @@ namespace AzurePoolCrossDbGenerator
                     }
             }
 
-            ExitApp();
+            ExitApp(0);
         }
 
         /// <summary>
@@ -120,11 +125,11 @@ namespace AzurePoolCrossDbGenerator
         /// <summary>
         /// Wait for any key before exiting.
         /// </summary>
-        public static void ExitApp()
+        public static void ExitApp(int exitCode = 1)
         {
-            Console.WriteLine("Done. Press any key to exit");
-            Console.ReadKey();
-            Environment.Exit(0);
+            Console.WriteLine("Done. Exiting the app.");
+            //Console.ReadKey();
+            Environment.Exit(exitCode);
         }
 
 
@@ -137,6 +142,7 @@ namespace AzurePoolCrossDbGenerator
             public const string ExternalDataSourceConfig = "config/ExternalDataSourceConfig.json";
             public const string TablesConfig = "config/TablesConfig.json";
             public const string MasterKeyConfig = "config/MasterKeyConfig.json";
+            public const string SearchAndReplaceConfig = "config/SearchAndReplaceConfig.json";
         }
 
         public class Commands
@@ -148,6 +154,7 @@ namespace AzurePoolCrossDbGenerator
             public const string GenericScriptGeneration = "template";
             public const string GenerateSqlCmdBatch = "sqlcmd";
             public const string RemoveSelfReferences = "selfref";
+            public const string RemoveInsertReferences = "insertref";
         }
 
     }

@@ -42,16 +42,14 @@ namespace AzurePoolCrossDbGenerator
                         string colPrecision = reader["NUMERIC_PRECISION"].ToString();
                         string colScale = reader["NUMERIC_SCALE"].ToString();
 
-                        // convert len to max for -1 value
-                        if (colLen == "-1")
+                        // adjust long text types to (max)
+                        if (colType == "nvarchar" || colType == "varchar")
                         {
-                            colLen = "max";
+                            if (colLen == "-1" || long.Parse(colLen) > 8000) colLen = "max";
                         }
-                        else if (!string.IsNullOrEmpty(colLen) && long.Parse(colLen) > 8000)
-                        {
-                            colLen = null;
-                            colType = "text";
-                        }
+
+                        // image and text have length, but not in the SQL definitions
+                        if (colType == "image" || colType == "text") colLen = "";
 
                         // text types have length - nvarchar(255)
                         if (!String.IsNullOrEmpty(colLen)) colType += $"({colLen})";

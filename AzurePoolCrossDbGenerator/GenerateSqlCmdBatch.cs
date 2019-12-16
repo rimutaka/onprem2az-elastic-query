@@ -24,6 +24,14 @@ namespace AzurePoolCrossDbGenerator
                 Program.ExitApp();
             }
 
+            // the target directory can be relative or absolute
+            if (!Path.IsPathRooted(targetDirectory))
+            {
+                targetDirectory = targetDirectory.TrimStart(('\\'));
+                if (!targetDirectory.ToLower().StartsWith("scripts\\")) targetDirectory = "scripts\\" + targetDirectory;
+                targetDirectory = Path.Combine(Directory.GetCurrentDirectory(), targetDirectory);
+            }
+
             var sb = new System.Text.StringBuilder();
 
             // loop thru the files
@@ -32,21 +40,24 @@ namespace AzurePoolCrossDbGenerator
 
                 if (fileName.EndsWith(fileExtSQL))
                 {
-                    sb.AppendLine($"sqlcmd -S {serverName} -i \"{Path.GetFileName(fileName)}\"");
+                    string fileNameOnly = Path.GetFileName(fileName);
+                    sb.AppendLine($"sqlcmd -b -S {serverName} -i \"{fileNameOnly}\"");
+                    sb.AppendLine($"if ($LASTEXITCODE -eq 0) {{git add \"{fileNameOnly}\"}}");
                 }
             }
 
             sb.AppendLine(); // an empty line at the end to execute the last statement
 
             // output file name
-            string batFileName = Path.Combine(targetDirectory, "apply.bat");
+            
+            string batFileName = Path.Combine(targetDirectory, "apply.ps1");
 
 
             // do not overwrite files for consistency
             if (File.Exists(batFileName))
             {
                 Console.WriteLine($"#{batFileName} already exists.");
-                Program.ExitApp();
+                Program.ExitApp(2);
             }
 
             Console.WriteLine($"Saving to {batFileName}");
