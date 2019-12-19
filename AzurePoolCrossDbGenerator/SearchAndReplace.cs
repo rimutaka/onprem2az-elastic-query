@@ -101,7 +101,7 @@ namespace AzurePoolCrossDbGenerator
                 if (string.IsNullOrEmpty(schemaPart)) schemaPart = "dbo";
 
                 // prepare the new SQL object name
-                string sqlObjectNameNew = string.Format(replacementTemplate, dbNameFromFolder, match.Groups[1]?.Value, match.Groups[2]?.Value, match.Groups[3]?.Value);
+                string sqlObjectNameNew = string.Format(replacementTemplate, dbNameFromFolder, match.Groups[1]?.Value, match.Groups[3]?.Value, match.Groups[2]?.Value);
                 string sqlStatementNew = Regex.Replace(sqlStatement, threePartRegex, sqlObjectNameNew, regexOptions_im);
 
                 // log the output
@@ -132,7 +132,9 @@ namespace AzurePoolCrossDbGenerator
                 }
 
                 // check if the line matches the old line
-                if (sqlLines[lineNumber] != sqlStatement)
+                string canonicalSqlLine = sqlLines[lineNumber].Replace("[", "").Replace("]", "").ToLower();
+                string canonicalSqlStatement = sqlStatement.Replace("[", "").Replace("]", "").ToLower();
+                if (canonicalSqlLine != canonicalSqlStatement)
                 {
                     Console.WriteLine(sqlLines[lineNumber]);
                     Console.WriteLine($"Line {lineNumber + 1} mismatch in the SQL file.");
