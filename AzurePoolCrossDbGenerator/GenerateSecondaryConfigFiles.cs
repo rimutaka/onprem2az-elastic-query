@@ -12,31 +12,47 @@ namespace AzurePoolCrossDbGenerator
         /// Genrate a generic list of tables as JSON for further editing. 
         /// </summary>
         /// <param name="configFile"></param>
-        public static void GenerateListOfTables(string configJson)
+        public static void GenerateSecondaryConfigFiles(Configs.InitialConfig config)
         {
-            // load data
-            Configs.InitialConfig config = JsonConvert.DeserializeObject<Configs.InitialConfig>(configJson);
-
-            List<Configs.AllTables> tableList = new List<Configs.AllTables>(); // config for mirror tables
+            // output collections per config file
+            List<Configs.AllTables> tableListMirror = new List<Configs.AllTables>(); // config for mirror tables
+            List<Configs.AllTables> tableListRO = new List<Configs.AllTables>(); // config for read-only external tables
             List<Configs.CreateMasterKey> masterKeyList = new List<Configs.CreateMasterKey>(); // config for Master Key config
             List<Configs.CreateExternalDataSource> extDataSrcList = new List<Configs.CreateExternalDataSource>(); // config for ext data source config
 
             Configs.AllTables prevTable = new Configs.AllTables(); // a container for tracking changes
 
             // normalise line endings and remove [ ]
-            config.masterTables = config.masterTables.Replace("\r", "").Replace("[", "").Replace("]", "");
+            config.masterTables ??= "";
+            config.masterTablesRO ??= "";
+            config.masterTables = config.masterTables.Replace("\r", "").Replace("[", "").Replace("]", "").Replace(" ", "");
+            config.masterTablesRO = config.masterTablesRO.Replace("\r", "").Replace("[", "").Replace("]", "").Replace(" ", "");
             config.connections = config.connections.Replace("\r", "");
 
             var jsonSettings = new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore }; // ignore null properties
 
-            foreach (string tableLine in config.masterTables.Split("\n"))
+            // combine mirror and ro lists
+            string[] allTables = config.masterTables.Split("\n");
+            string[] roTables = config.masterTablesRO.Split("\n");
+            int mirrorCount = allTables.Length;
+            if (roTables.Length > 0)
             {
+                Array.Resize<string>(ref allTables, mirrorCount + roTables.Length);
+                Array.Copy(roTables, 0, allTables, mirrorCount, roTables.Length);
+            }
+
+            foreach (string tableLine in allTables)
+            {
+                mirrorCount--; // decrement the counter to know when mirrors turn into read-only tables
+                if (mirrorCount == -1) prevTable = new Configs.AllTables(); // reset on switching from mirrors to ROs
+
                 // get the 3-part name like DB_STATS..TB_MANUALRESERVATION
                 if (string.IsNullOrWhiteSpace(tableLine)) continue; // skip empty lines
                 string[] tableParts = tableLine.Trim().Split(".");
 
                 // check the format
                 if (tableParts.Length != 3) throw new Exception($"Must be a 3-part name: {tableLine}");
+                if (tableParts[0].ToLower()==config.mirrorDB.ToLower()) throw new Exception($"Found a self-reference: {tableLine}");
 
                 // add mirror table details
                 var tableItem = new Configs.AllTables()
@@ -47,12 +63,20 @@ namespace AzurePoolCrossDbGenerator
                     masterCS = (prevTable.masterDB?.ToLower() != tableParts[0].ToLower()) ? GetConnectionString(config, tableParts[0]) : null
                 };
 
-                tableList.Add(tableItem); // add to the collection
+                if (mirrorCount >= 0)
+                {
+                    tableListMirror.Add(tableItem); // add to mirror collection
+                }
+                else
+                {
+                    tableListRO.Add(tableItem); // add to read-only collection
+                }
+
                 prevTable.Merge(tableItem, true); // merge with overwrite
 
                 // process MasterKeyConfig
                 var masterKeyItem = new Configs.CreateMasterKey();
-                if ( masterKeyList.Count ==0) // add full details to the first item only
+                if (masterKeyList.Count == 0) // add full details to the first item only
                 {
                     masterKeyItem.password = config.password;
                     masterKeyItem.credential = config.credential;
@@ -94,18 +118,13 @@ namespace AzurePoolCrossDbGenerator
                     Console.WriteLine($"Missing table definition for {prevTable.masterDB}..{prevTable.masterTable}");
                     Program.ExitApp();
                 }
-
             }
 
-            // SearchAndReplace is out of the loop - a single item
-            var searchReplaceItem = new Configs.SearchAndReplace() { localServer = config.localServer };
-
             // save as files
-            Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.TablesConfig, JsonConvert.SerializeObject(tableList.ToArray(), jsonSettings));
+            if (tableListMirror.Count > 0) Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.TablesConfigMirror, JsonConvert.SerializeObject(tableListMirror.ToArray(), jsonSettings));
+            if (tableListRO.Count > 0) Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.TablesConfigReadOnly, JsonConvert.SerializeObject(tableListRO.ToArray(), jsonSettings));
             Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.MasterKeyConfig, JsonConvert.SerializeObject(masterKeyList.ToArray(), jsonSettings));
             Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.ExternalDataSourceConfig, JsonConvert.SerializeObject(extDataSrcList.ToArray(), jsonSettings));
-            Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.SearchAndReplaceConfig, JsonConvert.SerializeObject(searchReplaceItem, jsonSettings));
-
         }
 
         /// <summary>

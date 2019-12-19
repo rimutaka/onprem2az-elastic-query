@@ -7,9 +7,6 @@
 -- 2 - masterTable
 -- 3 - table columns
 
-USE [{1}]
-GO
-
 DROP TABLE IF EXISTS ext_{0}__{2}
 GO
 

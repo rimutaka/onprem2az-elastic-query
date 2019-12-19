@@ -11,10 +11,9 @@ namespace AzurePoolCrossDbGenerator
         /// Generates *CREATE MASTER KEY* statements 
         /// </summary>
         /// <param name="configFile"></param>
-        public static void CreateExternalDataSource(string configJson)
+        public static void CreateExternalDataSource(Configs.CreateExternalDataSource[] config)
         {
             // load data
-            Configs.CreateExternalDataSource[] config = JsonConvert.DeserializeObject<Configs.CreateExternalDataSource[]>(configJson);
             Configs.CreateExternalDataSource sharedConfig = new Configs.CreateExternalDataSource();
             string templateContents = Generators.GetTemplateContents("CreateExternalDataSource.txt");
 
@@ -32,7 +31,7 @@ namespace AzurePoolCrossDbGenerator
                         config[i].localDB, config[i].externalDB,
                         config[i].serverName, config[i].credential);
 
-                    string outputFileName = $"CreateExtDataSrc_{config[i].localDB}__{config[i].externalDB}{fileExtSQL}";
+                    string outputFileName = $"CreateExternalDataSource_{config[i].localDB}__{config[i].externalDB}{fileExtSQL}";
 
                     Generators.SaveGeneratedScript(outputContents, outputFileName, i);
 

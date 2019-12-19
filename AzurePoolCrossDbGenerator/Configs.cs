@@ -55,7 +55,6 @@ namespace AzurePoolCrossDbGenerator
                     Console.WriteLine($"{FileName} written.");
                 }
             }
-
         }
 
         public class CreateMasterKey : GenericConfigEntry
@@ -65,6 +64,13 @@ namespace AzurePoolCrossDbGenerator
             public string credential;
             public string identity;
             public string secret;
+
+            public static CreateMasterKey[] Load(string configFileName)
+            {
+                configFileName ??= Program.FileNames.MasterKeyConfig;
+                return JsonConvert.DeserializeObject<Configs.CreateMasterKey[]>(LoadConfigFile(configFileName));
+            }
+
         }
 
         public class CreateExternalDataSource : GenericConfigEntry
@@ -74,6 +80,12 @@ namespace AzurePoolCrossDbGenerator
             public string serverName;
             public string credential;
             public string twoway;
+
+            public static CreateExternalDataSource[] Load(string configFileName)
+            {
+                configFileName ??= Program.FileNames.ExternalDataSourceConfig;
+                return JsonConvert.DeserializeObject<Configs.CreateExternalDataSource[]>(LoadConfigFile(configFileName));
+            }
         }
 
         public class AllTables : GenericConfigEntry
@@ -82,11 +94,17 @@ namespace AzurePoolCrossDbGenerator
             public string masterDB;
             public string masterCS;
             public string masterTable;
+
+            public static AllTables[] Load(string configFileName)
+            {
+                return JsonConvert.DeserializeObject<Configs.AllTables[]>(LoadConfigFile(configFileName));
+            }
         }
 
         public class InitialConfig : GenericConfigEntry
         {
             public string masterTables;
+            public string masterTablesRO;
             public string mirrorDB;
             public string serverName;
             public string password;
@@ -96,15 +114,55 @@ namespace AzurePoolCrossDbGenerator
             public string twoway;
             public string connections;
             public string localServer;
+
+            public static InitialConfig Load(string configFileName)
+            {
+                configFileName ??= Program.FileNames.InitialConfig;
+                return JsonConvert.DeserializeObject<Configs.InitialConfig>(LoadConfigFile(configFileName));
+            }
         }
 
-        public class SearchAndReplace : GenericConfigEntry
+        /// <summary>
+        /// Load the config file or notify of problems and exit.
+        /// </summary>
+        /// <param name="configFileName">Can be rooted or relative to the current directory.</param>
+        /// <returns></returns>
+        static string LoadConfigFile(string configFileName)
         {
-            public string localServer;
-            public string patternSelfRefs = "{1}.{2}";
-            public string nameMirror = "mr_{0}__{2}";
-            public string nameExtTable = "ext_{0}__{2}";
 
+            if (string.IsNullOrEmpty(configFileName))
+            {
+                Console.WriteLine();
+                Console.WriteLine($"Use -c full_path or -c relative_path.");
+                Program.ExitApp();
+            }
+
+            // build the full path depending on the input
+            if (!configFileName.Contains("\\") && !configFileName.Contains("/")) configFileName = Path.Combine(Program.FileNames.ConfigFolder, configFileName);
+            string fullPath = (Path.IsPathRooted(configFileName)) ? configFileName : Path.Combine(Directory.GetCurrentDirectory(), configFileName);
+
+            // check if the file exists
+            if (!System.IO.File.Exists(fullPath))
+            {
+                Console.WriteLine();
+                Console.WriteLine($"Missing config file: {fullPath}. Use -c full_path or -c relative_path or -c file_name_in_scripts_subfolder.");
+                Program.ExitApp();
+            }
+
+            // load the config file
+            string configJson = null;
+            try
+            {
+                configJson = File.ReadAllText(fullPath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Cannot read the config file: " + ex.Message);
+                Program.ExitApp();
+            }
+
+            return configJson;
         }
     }
 }

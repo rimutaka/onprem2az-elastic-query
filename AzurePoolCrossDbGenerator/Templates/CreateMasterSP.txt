@@ -6,10 +6,6 @@
 -- 2 - masterTable
 -- 3 - table columns
 
-
-USE [{1}]
-GO
-
 DROP PROCEDURE IF EXISTS sp_CopyFrom_{0}__{2}
 GO
 

@@ -4,9 +4,6 @@
 -- 3 - identity
 -- 4 - secret
 
-USE [{0}]
-GO
-
 -- initialise the master key required to store other passwords in the DB
 -- one per DB and can only be run once
  CREATE MASTER KEY ENCRYPTION BY PASSWORD = '{1}';

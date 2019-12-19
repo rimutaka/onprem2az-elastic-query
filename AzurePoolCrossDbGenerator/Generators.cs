@@ -41,6 +41,7 @@ namespace AzurePoolCrossDbGenerator
             // check if the destination file was specified
             if (string.IsNullOrEmpty(folder))
             {
+                Console.WriteLine();
                 Console.WriteLine($"#{(i + 1).ToString()} - no destination folder");
                 return false;
             }
@@ -102,13 +103,5 @@ namespace AzurePoolCrossDbGenerator
                 Console.WriteLine(ex.Message);
             }
         }
-
-        /// <summary>
-        /// Defines a delegate for functions that return a new name for a 3-part object name
-        /// </summary>
-        /// <returns></returns>
-        public delegate string GetNew3PartObjectName (string dbName, string schemaPart, string tablePart, Configs.SearchAndReplace config);
-
-
     }
 }

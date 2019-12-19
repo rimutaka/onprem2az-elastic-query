@@ -6,9 +6,6 @@
 -- 2 - masterTable
 -- 3 - table columns
 
-USE [{1}]
-GO
-
 --DROP EXTERNAL TABLE ext_{0}__{2}
 GO
 

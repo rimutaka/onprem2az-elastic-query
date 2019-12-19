@@ -11,10 +11,9 @@ namespace AzurePoolCrossDbGenerator
         /// Generates *CREATE MASTER KEY* statements 
         /// </summary>
         /// <param name="configFile"></param>
-        public static void CreateMasterKey(string configJson)
+        public static void CreateMasterKey(Configs.CreateMasterKey[] config)
         {
             // load data
-            Configs.CreateMasterKey[] config = JsonConvert.DeserializeObject<Configs.CreateMasterKey[]>(configJson);
             Configs.CreateMasterKey sharedConfig = new Configs.CreateMasterKey();
             string templateContents = Generators.GetTemplateContents("CreateMasterKey.txt");
 

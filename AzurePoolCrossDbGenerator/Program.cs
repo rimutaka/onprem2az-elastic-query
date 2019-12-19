@@ -11,76 +11,88 @@ namespace AzurePoolCrossDbGenerator
 
         static void Main(string[] args)
         {
-            Console.WriteLine("AzurePoolCrossDbGenerator started.");
+            Console.WriteLine($"AzurePoolCrossDbGenerator started in {Directory.GetCurrentDirectory()}.");
 
             string command = (args.Length > 0) ? args[0]?.Trim().ToLower() : ""; // must be a valid command
-            string scriptTemplateFileName = (args.Length > 1) ? args[1] : ""; // a file name with the template to use
+            string paramTemplate = null, paramConfig = null, paramGrepFileName = null, paramTargetDir = null, paramRunOn = null;
+
+            // extract additional params
+            for (int i = 1; i<args.Length-1; i++)
+            {
+                switch (args[i])
+                {
+                    case "-t":
+                        {
+                            paramTemplate = args[i + 1];
+                            break;
+                        }
+                    case "-c":
+                        {
+                            paramConfig = args[i + 1];
+                            break;
+                        }
+                    case "-g":
+                        {
+                            paramGrepFileName = args[i + 1];
+                            break;
+                        }
+                    case "-d":
+                        {
+                            paramTargetDir = args[i + 1];
+                            break;
+                        }
+                    case "-o":
+                        {
+                            paramRunOn = args[i + 1];
+                            break;
+                        }
+                }
+            }
 
             // validate the params
-            if (string.IsNullOrEmpty(command))
-            {
-                Console.WriteLine($"1. Check `readme.md` for usage instructions.");
-                Console.WriteLine($"2. Use `{Commands.GenerateBlankConfigFiles}` command to initialise the environment.");
-                Console.WriteLine($"3. Populate `{FileNames.InitialConfig}`, `{FileNames.MasterKeyConfig}` and `{FileNames.ExternalDataSourceConfig}` files.");
-                Console.WriteLine($"4. Use `{Commands.GenerateTablesConfigFile}` command to build the list of tables.");
-                Console.WriteLine($"5. Check if `{FileNames.TablesConfig}` file is correct.");
-                Console.WriteLine($"6. Use other commands to generate scripts.");
-                ExitApp();
-            }
-
-            // check there are 2 args for generic script generation
-            if (command == Commands.GenericScriptGeneration && string.IsNullOrEmpty(scriptTemplateFileName))
-            {
-                Console.WriteLine("Required format: generate [path to the template file]. See readme.md for usage instructions.");
-                return;
-            }
+            if (string.IsNullOrEmpty(command)) PrintWelcomeMsg();
 
             // call the handler for the command
             switch (command)
             {
-                case Commands.GenerateMasterKeys:
-                    {
-                        Generators.CreateMasterKey(LoadConfigFile(FileNames.MasterKeyConfig));
-                        break;
-                    }
-                case Commands.GenerateExternalDataSources:
-                    {
-                        Generators.CreateExternalDataSource(LoadConfigFile(FileNames.ExternalDataSourceConfig));
-                        break;
-                    }
                 case Commands.GenerateBlankConfigFiles:
                     {
                         Generators.GenerateBlankConfigs();
                         break;
                     }
-                case Commands.GenerateTablesConfigFile:
+                case Commands.GenerateSecondaryConfigFiles:
                     {
-                        Generators.GenerateListOfTables(LoadConfigFile(FileNames.InitialConfig));
+                        Generators.GenerateSecondaryConfigFiles(Configs.InitialConfig.Load(paramConfig));
+                        break;
+                    }
+                case Commands.GenerateMasterKeys:
+                    {
+                        Generators.CreateMasterKey(Configs.CreateMasterKey.Load(paramConfig));
+                        break;
+                    }
+                case Commands.GenerateExternalDataSources:
+                    {
+                        Generators.CreateExternalDataSource(Configs.CreateExternalDataSource.Load(paramConfig));
                         break;
                     }
                 case Commands.GenericScriptGeneration:
                     {
-                        Generators.GenerateScript(LoadConfigFile(FileNames.TablesConfig), scriptTemplateFileName);
+                        Generators.GenerateScript(Configs.AllTables.Load(paramConfig), paramTemplate, paramRunOn);
                         break;
                     }
                 case Commands.GenerateSqlCmdBatch:
                     {
-                        Generators.GenerateSqlCmdBatch(LoadConfigFile(FileNames.InitialConfig), scriptTemplateFileName);
+                        Generators.GenerateSqlCmdBatch(Configs.InitialConfig.Load(paramConfig), paramTargetDir);
                         break;
                     }
-                case Commands.RemoveSelfReferences:
+                case Commands.ReplaceInSqlFiles:
                     {
-                        Generators.SearchAndReplace(LoadConfigFile(FileNames.SearchAndReplaceConfig), scriptTemplateFileName, Generators.GetNewObjectNameSelfRefs);
-                        break;
-                    }
-                case Commands.RemoveInsertReferences:
-                    {
-                        Generators.SearchAndReplace(LoadConfigFile(FileNames.SearchAndReplaceConfig), scriptTemplateFileName, Generators.GetNewObjectNameInsert);
+                        Generators.SearchAndReplace(Configs.InitialConfig.Load(paramConfig), paramGrepFileName, paramTemplate);
                         break;
                     }
                 default:
                     {
-                        Console.WriteLine("Wrong command. See readme.md for usage instructions.");
+                        PrintWelcomeMsg();
                         break;
                     }
             }
@@ -100,6 +112,7 @@ namespace AzurePoolCrossDbGenerator
             // check if the file exists
             if (!System.IO.File.Exists(fullPath))
             {
+                Console.WriteLine();
                 Console.WriteLine($"Missing config file: {fullPath}. Use `config` command to initialise the environment.");
                 ExitApp();
             }
@@ -112,6 +125,7 @@ namespace AzurePoolCrossDbGenerator
             }
             catch (Exception ex)
             {
+                Console.WriteLine();
                 Console.WriteLine("Cannot read the config file: " + ex.Message);
                 ExitApp();
             }
@@ -120,6 +134,13 @@ namespace AzurePoolCrossDbGenerator
         }
 
 
+        static void PrintWelcomeMsg()
+        {
+            Console.WriteLine($"Usage: `command` -t `template file name or replacement pattern` -c `config file name`.");
+            Console.WriteLine($"No params commands: `init`, `config`.");
+            Console.WriteLine($"See `readme.md` for more info.");
+            ExitApp();
+        }
 
 
         /// <summary>
@@ -139,10 +160,14 @@ namespace AzurePoolCrossDbGenerator
             public const string TemplatesFolder = "templates";
             public const string OutputFolder = "scripts";
             public const string InitialConfig = "config/config.json";
-            public const string ExternalDataSourceConfig = "config/ExternalDataSourceConfig.json";
-            public const string TablesConfig = "config/TablesConfig.json";
-            public const string MasterKeyConfig = "config/MasterKeyConfig.json";
-            public const string SearchAndReplaceConfig = "config/SearchAndReplaceConfig.json";
+            public const string ExternalDataSourceConfig = "config/ExternalDataSource.json";
+            public const string TablesConfigMirror = "config/TablesMirror.json";
+            public const string TablesConfigReadOnly = "config/TablesReadOnly.json";
+            public const string MasterKeyConfig = "config/MasterKey.json";
+            public const string SearchAndReplaceConfig = "config/SearchAndReplace.json";
+
+            public const string OutputFileNameMaskRunOnMaster = "{1}__{0}__{2}";
+            public const string OutputFileNameMaskRunOnMirror = "{0}__{1}__{2}";
         }
 
         public class Commands
@@ -150,11 +175,10 @@ namespace AzurePoolCrossDbGenerator
             public const string GenerateMasterKeys = "keys";
             public const string GenerateExternalDataSources = "sources";
             public const string GenerateBlankConfigFiles = "init";
-            public const string GenerateTablesConfigFile = "config";
+            public const string GenerateSecondaryConfigFiles = "config";
             public const string GenericScriptGeneration = "template";
             public const string GenerateSqlCmdBatch = "sqlcmd";
-            public const string RemoveSelfReferences = "selfref";
-            public const string RemoveInsertReferences = "insertref";
+            public const string ReplaceInSqlFiles = "replace";
         }
 
     }

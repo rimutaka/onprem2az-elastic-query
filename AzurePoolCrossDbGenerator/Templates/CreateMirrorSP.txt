@@ -5,10 +5,6 @@
 -- 2 - masterTable
 -- 3 - table columns
 
-
-USE [{0}]
-GO
-
 DROP PROCEDURE IF EXISTS sp_CopyTo_{1}__{2}
 GO
 

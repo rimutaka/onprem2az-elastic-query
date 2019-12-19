@@ -1,6 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace AzurePoolCrossDbGenerator
 {
@@ -11,15 +12,13 @@ namespace AzurePoolCrossDbGenerator
         /// Generate a .bat file for executing all SQL scripts in the current directory. 
         /// </summary>
         /// <param name="configFile"></param>
-        public static void GenerateSqlCmdBatch(string configJson, string targetDirectory)
+        public static void GenerateSqlCmdBatch(Configs.InitialConfig config, string targetDirectory)
         {
-            // load config data
-            Configs.InitialConfig config = JsonConvert.DeserializeObject<Configs.InitialConfig>(configJson);
-
             // check if we have the server name
             string serverName = config.localServer;
             if (string.IsNullOrEmpty(serverName))
             {
+                Console.WriteLine();
                 Console.WriteLine("Missing `localServer` param in `/config/config.json`");
                 Program.ExitApp();
             }
@@ -32,24 +31,42 @@ namespace AzurePoolCrossDbGenerator
                 targetDirectory = Path.Combine(Directory.GetCurrentDirectory(), targetDirectory);
             }
 
-            var sb = new System.Text.StringBuilder();
+            // get all files in the folder
+            string[] fileNames = Directory.GetFiles(targetDirectory);
+
+            // do not write out an empty file
+            if (fileNames.Length == 0)
+            {
+                Console.WriteLine($"Empty folder: {targetDirectory}");
+                Program.ExitApp(2);
+            }
 
             // loop thru the files
-            foreach (string fileName in Directory.GetFiles(targetDirectory))
+            var sb = new System.Text.StringBuilder();
+            foreach (string fileName in fileNames)
             {
+                // skip non-.sql files
+                if (!fileName.EndsWith(fileExtSQL)) continue;
 
-                if (fileName.EndsWith(fileExtSQL))
+                string fileNameOnly = Path.GetFileName(fileName);
+
+                // extract the DB to run the script in from the file name
+                var match = Regex.Match(fileNameOnly, @"^.*__([\w\d]*)__[\w\d]*__[\w\d]*", regexOptions_im);
+                if (!match.Success || match.Groups.Count != 2)
                 {
-                    string fileNameOnly = Path.GetFileName(fileName);
-                    sb.AppendLine($"sqlcmd -b -S {serverName} -i \"{fileNameOnly}\"");
-                    sb.AppendLine($"if ($LASTEXITCODE -eq 0) {{git add \"{fileNameOnly}\"}}");
+                    Console.WriteLine();
+                    Console.WriteLine($"Cannot extract semantic parts from {fileNameOnly}");
+                    Program.ExitApp();
                 }
+                string dbName = match.Groups[1]?.Value;
+
+                sb.AppendLine($"sqlcmd -b -S {serverName} -d {dbName} -i \"{fileNameOnly}\"");
+                sb.AppendLine($"if ($LASTEXITCODE -eq 0) {{git add \"{fileNameOnly}\"}}");
             }
 
             sb.AppendLine(); // an empty line at the end to execute the last statement
 
             // output file name
-            
             string batFileName = Path.Combine(targetDirectory, "apply.ps1");
 
 
@@ -71,10 +88,6 @@ namespace AzurePoolCrossDbGenerator
             {
                 Console.WriteLine(ex.Message);
             }
-
-
-
         }
-
     }
 }

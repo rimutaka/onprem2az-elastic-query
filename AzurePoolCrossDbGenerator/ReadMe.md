@@ -2,19 +2,22 @@
 
 This utility generates a set of scripts to enable existing MS SQL DBs to perform cross-DB write queries from stored procedures with minimal changes.
 
-Use the following format: AzurePoolCrossDbGenerator [command] [config file name (use absolute path)]
+Use the following format: azpm `command` [-t `template file name or replacement pattern`] [-c `config file name`] [-g `full path to grep file`].
 
 ## Commands
-* `init` - generates blank config files and copies script templates to the current folder
-* `config` - generates `TablesConfig.json` from `config.json` to establish links between DBs 
+
+* `init` - generates blank config files in `/config` folder and copies script templates to `/templates`.
+* `config` - generates secondary config files from `config.json` to establish links between DBs.
 * `key` - generates *CREATE MASTER KEY* statements 
 * `source` - generates *CREATE EXTERNAL DATA SOURCE* statements
-* `template template_name` - generates a script using specified template. Accepts a file name from *templates* sub-folder or a fully-qualified file name.
-* `sqlcmd path_to_folder` - prepare a batch file for executing all files in the specified directory with *SqlCmd* utility. Omit the path to process all subdirectories under `script`.
-* `selfref path_to_grep.txt` - removes all DB self-references and prepares a batch file for executing modified files with *SqlCmd* utility.
+* `template -t ... -c ...` - generates a script using specified template. Accepts a file name from *templates* sub-folder or a fully-qualified file name.
+* `sqlcmd -d path_to_folder` - prepare a PowerShell script for executing all *.sql* files in the specified directory with *SqlCmd* utility. 
+Non-recursive. Optional param:  *-c path to some version of config.json*.
+* `replace path_to_grep.txt` - removes all DB self-references and prepares a batch file for executing modified files with *SqlCmd* utility.
 * `insertref path_to_grep.txt` - converts 3-part names to a single mirror table name following *INSERT INTO* in all *.sql* files under the path of the 2nd param.
 
-**IMPORTANT**: Existing files are never overwritten.
+**IMPORTANT**: Existing config or script files in subfolders are never overwritten. Delete the files you want to replace before running a command. 
+On the contrary, `replace` command updates existing .sql files in DB folders.   
 
 ### Parameters
 * `template_name` - name of the file inside `./templates` folder
@@ -53,7 +56,22 @@ Run `azpm config` to generate config files based on the values in `config.json`.
 
 ## Config JSON files
 
-All files are arrays. Identical values do not need to be repeated - they are copied from the previous known value.
+Config files reside in `config` sub-folder, per DB folder.
+
+* `config.json` - the main config file that should be populated by hand to generate the rest of the config files.
+* `MasterKey.json` - used to generate master keys. It only has to be done once per DB after it was restored on Azure.
+* `ExternalDataSource.json` - used to generate *Create External Data Source* statements, one per local-remote DB pair.
+This file is auto-generated from `config.json`, but if the logins differ between servers it has to be modified by hand.
+* `TablesMirror.json` - list of external tables that should be mirrored. 
+Used to create mirrors, dummy external tables and external tables for INSERT statements.
+* `TablesReadOnly.json` - list of external tables that are only read remotely from the mirror DB.
+Used to create dummy external tables and external tables.
+* `SearchAndReplace.json` - lists C# string formatting patterns for substitution in existing SQL code.
+The formats must match those in the SQL templates. 
+
+### Value inheritance
+
+Some config files are arrays. Identical values do not need to be repeated - they are copied from the previous known value.
 
 E.g. 2nd and 3rd objects will get all the properties except for `localDB` copied from the 1st object in this example:
 
@@ -78,6 +96,10 @@ E.g. 2nd and 3rd objects will get all the properties except for `localDB` copied
 
 `twoway: 1` - generates the first script as prescribed, then reverses `externalDB` <-> `localDB` and generates again. 
 Use this option if the other properties of the connection are identical.
+
+`masterTables` - a list of all master tables for this DB to mirror locally and create the SPs for remote writes.
+
+`masterTablesRO` - a list of remote tables that are read only, so no need to create a local mirror.
 
 ### Config file generation
 
@@ -114,25 +136,42 @@ The templates are text files with .Net string interpolation via *String.Format(.
 * {2} - masterTable
 * {3} - table columns
 
+Run `azpm template` with these params to generate scripts using a template:
+* `-t` - an SQL template file name. It can be just the name of the file inside *templates* subfolder or the full path to a file eslewhere.
+* `-c` - a config file name. It can be just the name of the file inside *configs* subfolder or the full path to a file eslewhere.
+The config file must have the same format as *TablesMirror.json* or *TablesReadOnly.json*.
+* `-o` - either `master` or `mirror` to indicate which DB to run this script on.
+
+## Applying the scripts
+
+Run `azpm sqlcmd` with these params to generate PowerShell scripts with `sqlcmd` calls:
+* `-d` - path to the folder with SQL scripts. It can be either a full path or `target_folder_name` under `scripts` subfolder of the current directory.
+* `-c` - a an optional config file name. It can be just the name of the file inside *configs* subfolder or the full path to a file eslewhere.
+The config file must have the same format as *config.json*.
+
+
+## Order of applying the scripts
+
+Follow these steps. There are certain constaints that force this order onto us.
+
+1. Create mirrors
+2. Create dummy ext tables - *it's hard to create valid ext tables on-prem, so just create dummy ones as an interface*.
+3. Create dummy SPs at both ends - *no body because ext tables are not ready and a remote call doesn't work on-prem*.
+4. Move the DB to Azure Pool
+5. Add Master Keys
+6. Add Ext Data Sources - *ths and following steps can only be done on Azure*.
+7. ALT master table - *remove mirror_key field from mirror table template if creating mirrors after altering master tables*.
+8. Replace dummy ext tables with real ext tables
+9. Replace dummy SPs with real SPs
+
+
+
 ## Security
 
 The code is built for reuse of the same credential name for all DBs.
 It may be a more secure set up if you use a separate credential for every ext data source. 
 You may want to change the code to generate the cred names automatically.
 
-## Applying the scripts
-
-Follow these steps. There are certain constaints that force this order onto us.
-
-1. Create mirrors
-2. ALT master table - *remove mirror_key field from mirror table template if creating mirrors after altering master tables*.
-3. Create dummy ext tables - *it's hard to create valid ext tables on-prem, so just create dummy ones as an interface*.
-4. Create dummy SPs at both ends - *no body because ext tables are not ready and a remote call doesn't work on-prem*.
-5. Move the DB to Azure Pool
-6. Add Master Keys
-7. Add Ext Data Sources - *ths and following steps can only be done on Azure*.
-8. Replace dummy ext tables with real ext tables
-9. Replace dummy SPs with real SPs
 
 ## Bootsrapping DB export for Azure SQL Pool
 
@@ -210,3 +249,5 @@ This example uses common DB prefix `CITI_`, which was specific to a particular p
 
 A common error is that the column names are not listed and it does *INSERT INTO ... SELECT * FROM ...*,
 but `mirror_key` field is left unaccounted for. Add the following at the end of the list of select columns `NULL -- required for mirror_key column`.
+
+

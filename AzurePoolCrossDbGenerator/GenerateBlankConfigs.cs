@@ -20,21 +20,9 @@ namespace AzurePoolCrossDbGenerator
 
             Console.WriteLine($"Writing config files to {configFolder}");
 
-            // Create Master Key config
-            Configs.GenericConfigEntry[] config = { new Configs.CreateMasterKey() };
-            Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.MasterKeyConfig, JsonConvert.SerializeObject(config));
-
-            // Create data sources config
-            config[0] = new Configs.CreateExternalDataSource();
-            Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.ExternalDataSourceConfig, JsonConvert.SerializeObject(config));
-
             // create the initial config file
-            config[0] = new Configs.InitialConfig();
-            Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.InitialConfig, JsonConvert.SerializeObject(config[0]));
-
-            // create search-n-replace config file
-            config[0] = new Configs.SearchAndReplace();
-            Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.SearchAndReplaceConfig, JsonConvert.SerializeObject(config[0]));
+            var config = new Configs.InitialConfig();
+            Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.InitialConfig, JsonConvert.SerializeObject(config));
 
             // copy all templates to the local templates folder
             string templatesFolderDest = Path.Combine(currentDirectory, Program.FileNames.TemplatesFolder);
