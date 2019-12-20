@@ -1,79 +1,58 @@
-﻿# Azure Cross-DB compatibility generator
+﻿# Azure cross-DB compatibility script generator
 
-This utility generates a set of scripts to enable existing MS SQL DBs to perform cross-DB write queries from stored procedures with minimal changes.
-
-Use the following format: azpm `command` [-t `template file name or replacement pattern`] [-c `config file name`] [-g `full path to grep file`].
+This utility generates a set of scripts to enable existing MS SQL DBs to perform cross-DB read/write queries from stored procedures with minimal changes.
 
 ## Commands
 
-* `init` - generates blank config files in `/config` folder and copies script templates to `/templates`.
-* `config` - generates secondary config files from `config.json` to establish links between DBs.
-* `key` - generates *CREATE MASTER KEY* statements 
+* `init` - generates blank config files and copies templates.
+* `config` - generates secondary config files from `config.json`.
+* `key` - generates *CREATE MASTER KEY* statements.
 * `source` - generates *CREATE EXTERNAL DATA SOURCE* statements
-* `template -t ... -c ...` - generates a script using specified template. Accepts a file name from *templates* sub-folder or a fully-qualified file name.
-* `sqlcmd -d path_to_folder` - prepare a PowerShell script for executing all *.sql* files in the specified directory with *SqlCmd* utility. 
-Non-recursive. Optional param:  *-c path to some version of config.json*.
-* `replace path_to_grep.txt` - removes all DB self-references and prepares a batch file for executing modified files with *SqlCmd* utility.
-* `insertref path_to_grep.txt` - converts 3-part names to a single mirror table name following *INSERT INTO* in all *.sql* files under the path of the 2nd param.
-
-**IMPORTANT**: Existing config or script files in subfolders are never overwritten. Delete the files you want to replace before running a command. 
-On the contrary, `replace` command updates existing .sql files in DB folders.   
+* `template` - generates multiple scripts using a template.
+* `sqlcmd` - prepare a PowerShell script for executing all *.sql* files in the specified directory with *SqlCmd* utility.
+* `replace` - replaces parts of SQL code for refactoring.
 
 ### Parameters
-* `template_name` - name of the file inside `./templates` folder
-* `path_to_grep.txt` - an absolute path or relative to the grep output with all the references located in the root folder of all the DB scripts.
+* `-t template_name` - name of the file inside `templates` folder or an absolute path to a template file elsewhere
+* `-g path_to_grep.txt` - an absolute path to the grep output from DB analysis step. 
+The grep file must be located in the root folder of the DB solution.
+* `-c config_file.json` - optional in most cases. Use just the name of the file inside `config` folder or an absolute path to a config file elsewhere.
+The structure of config files differs for different commands.
+* `-d target_directory` - tells the app where to find *.sql* files for the command to process.
+Use an absolute path or a name of subfolder under `scripts`.
+
+### Specific behavior
+
+1. Existing files are never overwritten. Delete the files you want to replace before running a command.
+2. `replace` command updates existing *.sql* files in DB folders.   
+
 
 ## App folder structure
-This program expects to find some files in predefined subfolders relative to the current working directory.
+This program expects to find some files in predefined subfolders of the current working directory. This structure is created in the current directory by `init` command.
 
 * `./config` - all the config files. The names of the files are hardcoded and should not be changed.
 * `./scripts` - output directory for script generation.
 * `./templates` - a default location for script templates
 
 
-## Usage
+## Config files
 
-There is a great chance that you will need to modify the source code to fit your unique situation.
-It may be easier to create a shortcut in your working folder pointing to `\bin\Debug\netcoreapp3.0\AzurePoolCrossDbGenerator.exe`.
-
-* Shortcut name: `azpm`
-* Start in: `.` to make it run in the current directory of the command line
-
-
-### Step 1: initialise the environment
-
-Run `azpm init` to create blank config files. In most cases you only need to fill in details of `config.json`and delete the rest of the files.
-The config files you delete will be regenerated with values from `config.json` at the next step.
-
-The app will copy template files to your working directory. You can modify them as needed.
-
-### Step 2: generate config
-
-Run `azpm config` to generate config files based on the values in `config.json`. In most cases it all you need to get going.
-
-
-
-
-## Config JSON files
-
-Config files reside in `config` sub-folder, per DB folder.
+Config files reside in `config` sub-folder, per DB folder. For example, you need to migrate 5 DBs with cross-DB access.
+You will need to create 5 folders, one per DB and configure them all separately.
 
 * `config.json` - the main config file that should be populated by hand to generate the rest of the config files.
 * `MasterKey.json` - used to generate master keys. It only has to be done once per DB after it was restored on Azure.
+This file is auto-generated from `config.json`. You may have to modify the file if credentials differ between DBs.
 * `ExternalDataSource.json` - used to generate *Create External Data Source* statements, one per local-remote DB pair.
-This file is auto-generated from `config.json`, but if the logins differ between servers it has to be modified by hand.
-* `TablesMirror.json` - list of external tables that should be mirrored. 
-Used to create mirrors, dummy external tables and external tables for INSERT statements.
-* `TablesReadOnly.json` - list of external tables that are only read remotely from the mirror DB.
-Used to create dummy external tables and external tables.
-* `SearchAndReplace.json` - lists C# string formatting patterns for substitution in existing SQL code.
-The formats must match those in the SQL templates. 
+This file is auto-generated from `config.json`. You may have to modify this file if the credentials differ between DBs.
+* `TablesMirror.json` - list of external tables that should be mirrored for writing locally.
+* `TablesReadOnly.json` - list of external tables for remote read-only access.
 
-### Value inheritance
+### Config property inheritance
 
-Some config files are arrays. Identical values do not need to be repeated - they are copied from the previous known value.
+Config files other than `config.json` are arrays of objects. Identical values for the same properties do not need to be repeated from object to object - they are copied from the previous known value.
 
-E.g. 2nd and 3rd objects will get all the properties except for `localDB` copied from the 1st object in this example:
+E.g. 2nd and 3rd objects will get all the properties except for `localDB` copied from the 1st object:
 
 ```
 [
@@ -94,40 +73,54 @@ E.g. 2nd and 3rd objects will get all the properties except for `localDB` copied
 ]
 ```
 
+### Config properties
+
+`serverName` - Azure server name, e.g. `"serverName":"citi-sql-pool-test"`
+
+`password`, `credential`, `identity`, `secret` - these correspond to parameters of *CREATE MASTER KEY* and *CREATE EXTERNAL DATA SOURCE* SQL statements.
+
 `twoway: 1` - generates the first script as prescribed, then reverses `externalDB` <-> `localDB` and generates again. 
-Use this option if the other properties of the connection are identical.
+Use this option if the connections have identical properties.
 
-`masterTables` - a list of all master tables for this DB to mirror locally and create the SPs for remote writes.
+`localServer` - the name of the local server with copies of the DBs to migrate to configure *sqlcmd* scripts. E.g. `"localServer": "."`.
 
-`masterTablesRO` - a list of remote tables that are read only, so no need to create a local mirror.
+`connections` - a list of MSSQL connection strings to all the DBs, one per line. Example:
+```
+"connections":"Persist Security Info=False;User ID=sa;Password=sapwd;Initial Catalog=central;Server=.
+Persist Security Info=False;User ID=sa;Password=sapwd;Initial Catalog=pbl;Server=.
+Persist Security Info=False;User ID=sa;Password=sapwd;Initial Catalog=pbl_location;Server=."
+```
+
+`mirrorDB` - the name of the current DB the config file is for.
+
+`masterTables` - a list of all tables accessed by the current DB (mirror) with *INSERT* statements.
+Use 3-part names, one per line, like in this example:
+```
+"masterTables": "central.dbo.tbc_EstimatedCategory
+central.dbo.tbt_estimatedcategory
+helpdesk.dbo.departments
+pbl..tbr_channel_agency"
+```
+It's OK to omit the schema name. The all will default it to `dbo`. The app will use this list to create a mirror table, an external table, 2 SPs and an ALTER TABLE script per master table to make the remote writes work.
+
+`masterTablesRO` - a list of read-only remote tables. Use the same format as above. This list is used to generate an external table in the current DB (mirror DB).
 
 ### Config file generation
 
-Use command `init` to generate all possible config files with blank values.
+Run `azpm init` to generate the directory structure and `config.json` with blank values.
 
-Populate `config/config.json` with values and run `config` command to generate more config files with table data.
+Populate `config/config.json` with values and run `azpm config` to generate more config files with table data.
 
-Values for `serverName`, `password`, `credential`, `identity`, `secret` are copied into the generated configs.
+Check the generated config files and templates and make changes as necessary.
 
-`connections` should contain connection strings, one per line. E.g. 
-```
-Persist Security Info=False;User ID=sa;Password=sapwd;Initial Catalog=central;Server=.
-Persist Security Info=False;User ID=sa;Password=sapwd;Initial Catalog=pblciti;Server=.
-Persist Security Info=False;User ID=sa;Password=sapwd;Initial Catalog=reporting;Server=.
-```
+ Both `azpm init` and `azpm config` can be safely re-run at any stage. Existing files will not be overwritten.
 
-`mirrorDB` - name of the single DB that mirrors tables from master DBs. Usually it is the customer DB writing to shared DBs.
+ For example, if you need to add or remove a table:
+ 1. make changes to `config.json`
+ 2. delete the config files you want to regenerate
+ 3. run `azpm config` and review the newly generated files
 
-`masterTables` - a list of 3-part table names being remotely update from the *mirror DB*. One table per line. E.g.
-```
-central.dbo.tbt_EstimatedCategory 
-helpdesk.dbo.departments
-PBLCITI..TBR_CHANNEL_AGENCY
-```
-
-`localServer` - name of the server to include into *SqlCmd* scripts.
-
-## Script templates
+## SQL script templates
 
 The templates are text files with .Net string interpolation via *String.Format(...)*. Use `{n}` placeholders with the following numbers:
 
@@ -136,118 +129,155 @@ The templates are text files with .Net string interpolation via *String.Format(.
 * {2} - masterTable
 * {3} - table columns
 
-Run `azpm template` with these params to generate scripts using a template:
-* `-t` - an SQL template file name. It can be just the name of the file inside *templates* subfolder or the full path to a file eslewhere.
-* `-c` - a config file name. It can be just the name of the file inside *configs* subfolder or the full path to a file eslewhere.
-The config file must have the same format as *TablesMirror.json* or *TablesReadOnly.json*.
-* `-o` - either `master` or `mirror` to indicate which DB to run this script on.
+Originally, the templates reside in *templates* folder of the C# project and are copied to the working folder by `init` command.
+You can modify them locally, copy, rename and then specify the file name to be used with `-t` param.
 
-## Applying the scripts
+### How to update all templates
 
-Run `azpm sqlcmd` with these params to generate PowerShell scripts with `sqlcmd` calls:
-* `-d` - path to the folder with SQL scripts. It can be either a full path or `target_folder_name` under `scripts` subfolder of the current directory.
-* `-c` - a an optional config file name. It can be just the name of the file inside *configs* subfolder or the full path to a file eslewhere.
-The config file must have the same format as *config.json*.
+Sometimes you may need to update all the templates and re-run the script generation.
+1. Update the template source in the C# project
+2. Run a PowerShell script to delete templates from working folders
+3. Run `azpm init`. It will only add the missing templates and will not overwrite any existing files.
 
 
-## Order of applying the scripts
+# Commands in detail
 
-Follow these steps. There are certain constaints that force this order onto us.
+There is a great chance that you will need to modify the source code as you go.
+It may be easier to create a shortcut in your working folder pointing at `\bin\Debug\netcoreapp3.0\AzurePoolCrossDbGenerator.exe`.
 
-1. Create mirrors
-2. Create dummy ext tables - *it's hard to create valid ext tables on-prem, so just create dummy ones as an interface*.
-3. Create dummy SPs at both ends - *no body because ext tables are not ready and a remote call doesn't work on-prem*.
-4. Move the DB to Azure Pool
-5. Add Master Keys
-6. Add Ext Data Sources - *ths and following steps can only be done on Azure*.
-7. ALT master table - *remove mirror_key field from mirror table template if creating mirrors after altering master tables*.
-8. Replace dummy ext tables with real ext tables
-9. Replace dummy SPs with real SPs
+* Shortcut name: `azpm`
+* Start in: `.` to make it run in the current directory of the command line
+
+### init
+* **Params**: none
+* **Action**: create subfolders, copy SQL templates, create `config.json` template.
+* **Example**: `azpm init`
+
+### config
+* **Params**: optional `-c` to specify the source config from a file other than the default `config.json`
+* **Action**: generate other config files from `config.json` or `-c` param
+* **Example 1**: `azpm config` - uses default `config.json`
+* **Example 2**: `azpm config -c c:\myfolder\my-config.json`
+
+### keys
+* **Params**: optional `-c` to specify the source config from a file other than the default `MasterKey.json`
+* **Action**: generate *CREATE MASTER KEY* scripts for all DBs listed in `masterTables` and `masterTablesRO` using `CreateMasterKey.txt` template.
+* **Example 1**: `azpm keys` - uses default `MasterKey.json`
+* **Example 2**: `azpm keys -c c:\myfolder\my-MasterKey-config.json`
+
+### sources
+* **Params**: optional `-c` to specify the source config from a file other than the default `ExternalDataSource.json`
+* **Action**: generate *CREATE EXTERNAL DATA SOURCE* scripts for all DBs listed in `masterTables` and `masterTablesRO` using `CreateExternalDataSource.txt` template.
+* **Example 1**: `azpm sources` - uses default `ExternalDataSource.json`
+* **Example 2**: `azpm sources -c c:\myfolder\my-ExternalDataSource-config.json`
+
+### template
+* **Params**: 
+  * `-t` - template name from *templates* sub-folder, e.g. `-t CreateExtTable.txt` or `-t c:\myfolder\MyTemplate.txt`
+  * `-c` - config file name from *config* sub-folder, e.g. `-c TablesMirror.json` or `-c c:\myfolder\TablesMirror-config.json`
+  * `-o master` - the script will run on the DB listed as *master* in the config
+  * `-o mirror` - the script will run on the DB listed as *mirror* in the config
+  * all three `-t`, `-c` and `-o` params are required
+  * the config file must be the same format as *TablesMirror.json* to correspond to *Configs.AllTables* class in the C# code.
+* **Action**: generate SQL scripts using `-t` template with input from `-c` config, including table definitions.
+* **Example**: `azpm template -t CreateExtTable.txt -c TablesMirror.json -o master`
+
+### sqlcmd
+* **Params**: 
+  * optional `-c` to specify the source config from a file other than the default `config.json`
+  * required `-d` to specify the directory with SQL scripts, e.g. `-d AlterMasterTable` or `-d c:\myfolder`
+* **Action**: generate a PowerShell script to run all the scripts in `-d` folder and stage them in GIT on success.
+* **Example 1**: `azpm sqlcmd -d AlterMasterTable` - find SQL scripts in *./scripts/AlterMasterTable/* directory.
+* **Example 2**: `azpm sqlcmd -d c:\myfolder\` - find SQL scripts in *c:\myfolder* directory.
+
+### replace
+* **Params**: 
+  * required `-g` - absolute path to a grep output file with the list of strings to replace, e.g. `-g c:\myfolder\all-insert-grep.txt`
+  * optional `-c` to specify the source config from a file other than the default `config.json`
+  * required `-t` - a name replacement template with `{0,1,2,3}` substitution groups, e.g. `ext_{1}__{2}`
+  * substitution groups: `{0}` = the DB that owns the script, `{1}` = the DB name from the 3-part name being replaced, `{2}` = the table name, `{2}` = the schema name
+* **Action 1**: 
+  * replace 3-part names in the SQL scripts listed in the grep file with names built with `-t` template
+  * generate a PowerShell script with *sqlcmd* to apply modified scripts and stage them in GIT on success
+* **Example**: `replace -t ext_{1}__{2} -g C:\migration-repo\cross-db-read-grep-4v.txt`
+
+### About grep files
+
+1. The grep file must be located in the root of the DB solution with DBs as sub-folders containing all the SQL scripts (tables, views, SPs, UFs, etc) extracted from the DBs. The app will use the location of the grep file as the base for relative paths to SQL scripts in the grep file.
+
+**Grep example**:
+
+```
+./4val/dbo.ADD_MANUALRESERVATION_IN_STATS.StoredProcedure.sql:69:		LEFT OUTER JOIN CENTRAL.dbo.TB_Channel C ON  isnull(r.ID_Channel,0) = isnull(C.ID_Channel,0)
+./4val/dbo.ADD_ONLINERESERVATION_DETAILS_IN_STATS.StoredProcedure.sql:102:		LEFT OUTER JOIN CENTRAL.dbo.TB_Channel C ON  isnull(R.ID_Channel,0) = isnull(C.ID_Channel,0)
+./4val/dbo.ADD_ONLINERESERVATION_IN_STATS.StoredProcedure.sql:72:		LEFT OUTER JOIN CENTRAL.dbo.TB_Channel C ON  isnull(r.ID_Channel,0) = isnull(C.ID_Channel,0)
+./4val/dbo.ADD_ONLINERESERVATION_IN_CITI_STATS.StoredProcedure.sql:144:		LEFT OUTER JOIN CENTRAL.dbo.TB_Channel C ON  isnull(r.ID_Channel,0) = isnull(C.ID_Channel,0)
+```
+
+2. The grep files must be cleaned up to make sure there are only lines that need to be processed at this time.
+3. Line 1 from the snippet above will have `CENTRAL.dbo.TB_Channel` replaced with `ext_CENTRAL__TB_Channel` so that the 3-part name becomes a name of an external table which is created by one of the scripts generated with `azpm template -t CreateExtTableRO.txt -c TablesReadOnly.json -o mirror`
+```
+LEFT OUTER JOIN ext_CENTRAL__TB_Channel C ON  isnull(r.ID_Channel,0) = isnull(C.ID_Channel,0)
+```
+
+4. This program modifies *.sql* scripts exported from the DBs you are migrating. 
+All exported DB scripts should be checked into a repo and comply with this structure for script modifications to work: 
+```
+- /root/
+ -/db name/
+  -/script file name.sql/
+```
 
 
+# Order of generating and applying the scripts
 
-## Security
+### Analysis
+
+First of all, analyse and grep the SQL exported from the DBs you are migrating as much as possible. Look for:
+
+* INSERT
+* EXEC / EXECUTE
+* UPDATE
+* DELETE
+* self-references (e.g. `this_db.dbo.some_table` should be just `some_table`)
+* All the other 3-part names are likely to be from SQL FROM clauses, unless they are part of dynamic SQL
+
+### Multistage approach
+
+Some code can be run only on Azure and some only on a VM/bare metal. We are forced into a 2-stage approach:
+
+1. Remove the 3-part names so that the DB can be exported into *.bacpac*
+2. Upload the DBs to Azure
+3. Create external data sources and replace the temporary code we put in place in step 1
+
+### Step by step 
+
+1. **Mirror tables**
+2. **Dummy ext tables** - a local table that has the same definition as the external table
+3. **Dummy SPs at both ends** - these SPs have no body because there are no external data sources yet
+* *at this point there should be no 3-part names or any other issues preventing migration to Azure*
+4. **Move the DBs to Azure Pool**
+5. **Master Keys**
+6. **Ext Data Sources**
+7. **ALT master tables**
+8. **Replace dummy ext tables** with real ext tables
+9. **Replace dummy SPs** with real SPs
+* *the DBs should have everything they need to continue operating on Azure the same way they operated on-prem*
+
+
+# Security
 
 The code is built for reuse of the same credential name for all DBs.
 It may be a more secure set up if you use a separate credential for every ext data source. 
 You may want to change the code to generate the cred names automatically.
 
 
-## Bootsrapping DB export for Azure SQL Pool
+# Testing for migration issues
 
 Exporting a DB for Azure SQL Pool requires `.bacpac` file format. It is done with *SQlPackage.exe* utility (https://docs.microsoft.com/en-us/sql/tools/sqlpackage).
 
-The utility will check all internal references before exporting the file and raise an error for any cross-DB reference. 
-So we need to update the DBs to using *ElasticQuery*, but it is not possible with an on-prem SQL Server. It's a bit of a catch-22.
-
-The workaround is to create temporary tables and SPs with the same names as the external tables and no references to external data sources.
-Then we can update all existing cross-DB references with the new local ones, import into Azure and then replace the dummy objects with the proper ones.
-
-# Modifying files in bulk
-
-## Directory structure
-
-This program modifies *.sql* scripts exported from the DBs you are migrating. 
-All exported DB scripts should be checked into a repo and comply with this structure for script modifications to work: 
-
-- /root/
- -/db name/
-  -/script file name.sql/
-
-Script file names should follow the default SSMS exported script convension. E.g. `dbo.MyUserFunctionMane.UserDefinedFunction.sql`.
-
-## Remove self-references
-
-There may be 3-part names in SQL statements that refer to the same DB they are in. E.g. DB `PBLCITI_LOCATION` may have a statement like this:
-```
-select * from PBLCITI_LOCATION..TBR_AgencyObjectType
-```
-
-It is redundant and is not allowed under Azure SQL rules. Use `selfref` command to remove all DB self-references.
-
-1. Use `grep` to find all self references and output them into a file
+The utility will check all internal references before exporting the file and raise an error for any cross-DB reference.
 
 ```
-grep -i -n 'db_name\.' ./db_name/*.sql > self-refs.txt
-grep -i -n '\[db_name\]\.' ./db_name/*.sql >> self-refs.txt
+sqlpackage.exe /Action:Export /ssn:127.0.0.1 /su:sa /sp:sapwd /sdn:4VAL /tf:4VAL.bacpac
 ```
-The output file name `self-refs.txt` is arbitrary. Name it anything you like.
-
-2. Review `self-refs.txt` and remove lines that don't need modifications. E.g. line #1 in this example doesn't need any mods:
-```
-./citi_ip_country/CITI_IP_COUNTRY.Database.sql:6:( NAME = N'CITI_IP_COUNTRY_data', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL13.MSSQLSERVER\MSSQL\DATA\CITI_IP_COUNTRY.mdf' , SIZE = 458432KB , MAXSIZE = UNLIMITED, FILEGROWTH = 1024KB )
-./citi_ip_country/dbo.GetRentalpCountryCodeByIpNumber.UserDefinedFunction.sql:18:	from	citi_ip_country..tb_ip p, citi_ip_country..tb_location c
-```
-
-3. Place `self-refs.txt` in the root folder of all the DB scripts listed in it.
-
-4. Use `selfref absolute-path-to-self-refs.txt` from the root folder of the utility.
-This command will modify all files listed in `self-refs.txt` and create `self-refs.bat` to help you execute all modified files in one step.
-
-5. Carefully diff the changes and commit.
-
-6. Run `self-refs.bat`.
-
-7. Review the output.
-
-## Replace INSERT INTO 3-part names with mirror tables
-
-E.g. `insert into citi_reporting.dbo.tb_site` -> `insert into mr_citi_reporting__tb_site` where both tables have the same signature.
-
-1. Use `grep` to extract all 3-part names after INSERT INTO. Run it on all the SQL files for all DBs.
-```
-grep -i -r -n --include '*.sql'  -E '\binsert\s*into\s*\[?CITI_\w+\]?\.\[?\w*\]?\.\[?\w*\]?' . > cross-db-insert-grep.txt
-```
-This example uses common DB prefix `CITI_`, which was specific to a particular project. Modify the Regex to suit yours.
-
-2. Clean up the grep output to remove commented out lines, false positives and files like *Database.sql*.
-3. Remove references to lines where INSERT INTO is followed by SELECT ... FROM 3-part-name in the same line. Those have to be dealt with separately.
-
-
-
-### INSERT INTO column mismatch
-
-A common error is that the column names are not listed and it does *INSERT INTO ... SELECT * FROM ...*,
-but `mirror_key` field is left unaccounted for. Add the following at the end of the list of select columns `NULL -- required for mirror_key column`.
-
-
