@@ -194,12 +194,18 @@ It may be easier to create a shortcut in your working folder pointing at `\bin\D
 * **Params**: 
   * required `-g` - absolute path to a grep output file with the list of strings to replace, e.g. `-g c:\myfolder\all-insert-grep.txt`
   * optional `-c` to specify the source config from a file other than the default `config.json`
-  * required `-t` - a name replacement template with `{0,1,2,3}` substitution groups, e.g. `ext_{1}__{2}`
+  * required `-t` - a replacement template with `{0,1,2,3}` substitution groups, e.g. `ext_{1}__{2}`
   * substitution groups: `{0}` = the DB that owns the script, `{1}` = the DB name from the 3-part name being replaced, `{2}` = the table name, `{2}` = the schema name
 * **Action 1**: 
   * replace 3-part names in the SQL scripts listed in the grep file with names built with `-t` template
   * generate a PowerShell script with *sqlcmd* to apply modified scripts and stage them in GIT on success
 * **Example**: `replace -t ext_{1}__{2} -g C:\migration-repo\cross-db-read-grep-4v.txt`
+
+#### Substitution group examples:
+
+* cross-DB read: `ext_{1}__{2}` -> *ext_RemoteDbName__RemoteTableName*
+* self-ref: `{3}.{2}` -> *schema.localTableName*
+
 
 ### About grep files
 

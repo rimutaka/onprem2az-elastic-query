@@ -101,7 +101,7 @@ namespace AzurePoolCrossDbGenerator
                 if (string.IsNullOrEmpty(schemaPart)) schemaPart = "dbo";
 
                 // prepare the new SQL object name
-                string sqlObjectNameNew = string.Format(replacementTemplate, dbNameFromFolder, match.Groups[1]?.Value, match.Groups[3]?.Value, match.Groups[2]?.Value);
+                string sqlObjectNameNew = string.Format(replacementTemplate, dbNameFromFolder, match.Groups[1]?.Value, match.Groups[3]?.Value, schemaPart);
                 string sqlStatementNew = Regex.Replace(sqlStatement, threePartRegex, sqlObjectNameNew, regexOptions_im);
 
                 // log the output
