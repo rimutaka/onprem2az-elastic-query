@@ -18,8 +18,8 @@ namespace AzurePoolCrossDbGenerator
             string serverName = config.localServer;
             if (string.IsNullOrEmpty(serverName))
             {
-                Console.WriteLine();
-                Console.WriteLine("Missing `localServer` param in `/config/config.json`");
+                Program.WriteLine();
+                Program.WriteLine("Missing `localServer` param in `/config/config.json`", ConsoleColor.Red);
                 Program.ExitApp();
             }
 
@@ -37,7 +37,7 @@ namespace AzurePoolCrossDbGenerator
             // do not write out an empty file
             if (fileNames.Length == 0)
             {
-                Console.WriteLine($"Empty folder: {targetDirectory}");
+                Program.WriteLine($"Empty folder: {targetDirectory}", ConsoleColor.Yellow);
                 Program.ExitApp(2);
             }
 
@@ -54,8 +54,8 @@ namespace AzurePoolCrossDbGenerator
                 var match = Regex.Match(fileNameOnly, @"^.*__([\w\d]*)__[\w\d]*__[\w\d]*", regexOptions_im);
                 if (!match.Success || match.Groups.Count != 2)
                 {
-                    Console.WriteLine();
-                    Console.WriteLine($"Cannot extract semantic parts from {fileNameOnly}");
+                    Program.WriteLine();
+                    Program.WriteLine($"Cannot extract semantic parts from {fileNameOnly}", ConsoleColor.Red);
                     Program.ExitApp();
                 }
                 string dbName = match.Groups[1]?.Value;
@@ -73,11 +73,11 @@ namespace AzurePoolCrossDbGenerator
             // do not overwrite files for consistency
             if (File.Exists(batFileName))
             {
-                Console.WriteLine($"#{batFileName} already exists.");
+                Program.WriteLine($"#{batFileName} already exists.", ConsoleColor.Yellow);
                 Program.ExitApp(2);
             }
 
-            Console.WriteLine($"Saving to {batFileName}");
+            Program.WriteLine($"Saving to {batFileName}");
 
             // save
             try
@@ -86,7 +86,7 @@ namespace AzurePoolCrossDbGenerator
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Program.WriteLine(ex.Message);
             }
         }
     }

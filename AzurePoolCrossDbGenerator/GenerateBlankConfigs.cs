@@ -18,7 +18,7 @@ namespace AzurePoolCrossDbGenerator
             // create the folder if it doesn't exist
             if (!Directory.Exists(configFolder)) Directory.CreateDirectory(configFolder);
 
-            Console.WriteLine($"Writing config files to {configFolder}");
+            Program.WriteLine($"Writing config files to {configFolder}");
 
             // create the initial config file
             var config = new Configs.InitialConfig();
@@ -29,7 +29,7 @@ namespace AzurePoolCrossDbGenerator
             string templatesFolderSrc = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), Program.FileNames.TemplatesFolder);
 
             if (!Directory.Exists(templatesFolderDest)) Directory.CreateDirectory(templatesFolderDest);
-            Console.WriteLine($"Writing template files to {templatesFolderDest}");
+            Program.WriteLine($"Writing template files to {templatesFolderDest}");
 
 
 
@@ -40,12 +40,12 @@ namespace AzurePoolCrossDbGenerator
                 string fileNameDest = Path.Combine(templatesFolderDest, templateFileNoPath);
                 if (File.Exists(fileNameDest))
                 {
-                    Console.WriteLine($"{templateFileNoPath} already exists.");
+                    Program.WriteLine($"{templateFileNoPath} already exists.", ConsoleColor.Yellow);
                 }
                 else
                 {
                     File.Copy(templateFile, fileNameDest, false);
-                    Console.WriteLine($"{templateFileNoPath} written.");
+                    Program.WriteLine($"{templateFileNoPath} written.");
                 }
             }
         }

@@ -27,6 +27,14 @@ namespace AzurePoolCrossDbGenerator
         /// </summary>
         public static void SearchAndReplace(Configs.InitialConfig config, string changeListFileName, string replacementTemplate)
         {
+            // validate the grep file
+            if (!File.Exists(changeListFileName))
+            {
+                Program.WriteLine();
+                Program.WriteLine($"Grep file not found: {changeListFileName}.", ConsoleColor.Red);
+                Program.ExitApp();
+            }
+
             string rootFolder = Path.GetDirectoryName(changeListFileName); // the input file should be in the root folder
 
             // .bat file name
@@ -36,7 +44,8 @@ namespace AzurePoolCrossDbGenerator
             // do not overwrite files for consistency
             if (File.Exists(batFileName))
             {
-                Console.WriteLine($"{batFileName} already exists.");
+                Program.WriteLine();
+                Program.WriteLine($"{batFileName} already exists.", ConsoleColor.Yellow);
                 Program.ExitApp(2);
             }
 
@@ -44,8 +53,8 @@ namespace AzurePoolCrossDbGenerator
             string serverName = config.localServer;
             if (string.IsNullOrEmpty(serverName))
             {
-                Console.WriteLine();
-                Console.WriteLine("Missing `localServer` param in `/config/config.json`");
+                Program.WriteLine();
+                Program.WriteLine("Missing `localServer` param in `/config/config.json`", ConsoleColor.Red);
                 Program.ExitApp();
             }
 
@@ -66,8 +75,8 @@ namespace AzurePoolCrossDbGenerator
                 var match = Regex.Match(inLine, REGEX_GREP_PARTS, regexOptions_im);
                 if (!match.Success || match.Groups.Count != 5)
                 {
-                    Console.WriteLine();
-                    Console.WriteLine($"Cannot extract semantic parts from line {inLineNumber}:\n {inLine}\n with {REGEX_GREP_PARTS}");
+                    Program.WriteLine();
+                    Program.WriteLine($"Cannot extract semantic parts from line {inLineNumber}:\n {inLine}\n with {REGEX_GREP_PARTS}", ConsoleColor.Red);
                     continue;
                 }
 
@@ -80,8 +89,8 @@ namespace AzurePoolCrossDbGenerator
                 // check if any of the values are incorrect
                 if (string.IsNullOrEmpty(sqlFileName) || string.IsNullOrEmpty(dbNameFromFolder) || string.IsNullOrEmpty(sqlStatement) || lineNumber < 0)
                 {
-                    Console.WriteLine();
-                    Console.WriteLine($"Cannot extract semantic parts from this line:\n {inLine}\n with {REGEX_GREP_PARTS}");
+                    Program.WriteLine();
+                    Program.WriteLine($"Cannot extract semantic parts from this line:\n {inLine}\n with {REGEX_GREP_PARTS}", ConsoleColor.Red);
                     continue;
                 }
 
@@ -91,8 +100,8 @@ namespace AzurePoolCrossDbGenerator
                 if (!match.Success || match.Groups.Count != 4 || 
                     string.IsNullOrEmpty(match.Groups[1]?.Value) || string.IsNullOrEmpty(match.Groups[3]?.Value))
                 {
-                    Console.WriteLine();
-                    Console.WriteLine($"Cannot extract semantic parts from line {inLineNumber}:\n {sqlStatement}\n with {threePartRegex}");
+                    Program.WriteLine();
+                    Program.WriteLine($"Cannot extract semantic parts from line {inLineNumber}:\n {sqlStatement}\n with {threePartRegex}", ConsoleColor.Red);
                     continue;
                 }
 
@@ -105,10 +114,10 @@ namespace AzurePoolCrossDbGenerator
                 string sqlStatementNew = Regex.Replace(sqlStatement, threePartRegex, sqlObjectNameNew, regexOptions_im);
 
                 // log the output
-                Console.WriteLine();
-                Console.WriteLine($"#{inLineNumber}  {sqlFileName}");
-                Console.WriteLine(sqlStatement);
-                Console.WriteLine(sqlStatementNew);
+                Program.WriteLine();
+                Program.WriteLine($"#{inLineNumber}  {sqlFileName}");
+                Program.WriteLine(sqlStatement);
+                Program.WriteLine(sqlStatementNew);
 
                 // load the file and find the matching line match
                 sqlFileName = sqlFileName.Replace("/", "\\").TrimStart(new char[] { '.', '\\' });
@@ -118,15 +127,15 @@ namespace AzurePoolCrossDbGenerator
                 // check if the line number is valid
                 if (sqlLines.Length <= lineNumber)
                 {
-                    Console.WriteLine();
-                    Console.WriteLine($"Line {lineNumber + 1} is out of bounds.");
+                    Program.WriteLine();
+                    Program.WriteLine($"Line {lineNumber + 1} is out of bounds.", ConsoleColor.Red);
                     continue;
                 }
 
                 // check if the file line matches the new line
                 if (sqlLines[lineNumber] == sqlStatementNew)
                 {
-                    Console.WriteLine($"Already modified.");
+                    Program.WriteLine($"Already modified.");
                     AddToBatFileList(sqlFileName, dbNameFromFolder, true, sqlFiles, sqlDBs, sqlFilesCommentOut);
                     continue;
                 }
@@ -136,8 +145,8 @@ namespace AzurePoolCrossDbGenerator
                 string canonicalSqlStatement = sqlStatement.Replace("[", "").Replace("]", "").ToLower();
                 if (canonicalSqlLine != canonicalSqlStatement)
                 {
-                    Console.WriteLine(sqlLines[lineNumber]);
-                    Console.WriteLine($"Line {lineNumber + 1} mismatch in the SQL file.");
+                    Program.WriteLine(sqlLines[lineNumber]);
+                    Program.WriteLine($"Line {lineNumber + 1} mismatch in the SQL file.", ConsoleColor.Red);
                     continue;
                 }
 
@@ -168,8 +177,8 @@ namespace AzurePoolCrossDbGenerator
 
             sb.AppendLine(); // an empty line at the end to execute the last statement
 
-            Console.WriteLine();
-            Console.WriteLine($"Saving SQLCMD to {batFileName}");
+            Program.WriteLine();
+            Program.WriteLine($"Saving SQLCMD to {batFileName}");
 
             // save
             try
@@ -178,7 +187,7 @@ namespace AzurePoolCrossDbGenerator
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Program.WriteLine(ex.Message);
             }
         }
 

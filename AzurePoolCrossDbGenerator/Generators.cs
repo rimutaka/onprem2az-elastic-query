@@ -23,7 +23,7 @@ namespace AzurePoolCrossDbGenerator
 
             if (!File.Exists(templatePath))
             {
-                Console.WriteLine($"Template not found: {templatePath}");
+                Program.WriteLine($"Template not found: {templatePath}", ConsoleColor.Red);
                 Program.ExitApp();
             }
 
@@ -41,8 +41,8 @@ namespace AzurePoolCrossDbGenerator
             // check if the destination file was specified
             if (string.IsNullOrEmpty(folder))
             {
-                Console.WriteLine();
-                Console.WriteLine($"#{(i + 1).ToString()} - no destination folder");
+                Program.WriteLine();
+                Program.WriteLine($"#{(i + 1).ToString()} - no destination folder", ConsoleColor.Red);
                 return false;
             }
 
@@ -67,11 +67,11 @@ namespace AzurePoolCrossDbGenerator
             // do not overwrite files for consistency
             if (File.Exists(path))
             {
-                Console.WriteLine($"#{(i + 1).ToString()} - {outputFileName} already exists.");
+                Program.WriteLine($"#{(i + 1).ToString()} - {outputFileName} already exists.", ConsoleColor.Yellow);
                 return;
             }
 
-            Console.WriteLine($"#{(i + 1).ToString()} - saving to {outputFileName}");
+            Program.WriteLine($"#{(i + 1).ToString()} - saving to {outputFileName}");
 
             try
             {
@@ -79,7 +79,7 @@ namespace AzurePoolCrossDbGenerator
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Program.WriteLine(ex.Message);
             }
         }
 
@@ -88,11 +88,11 @@ namespace AzurePoolCrossDbGenerator
             // do not overwrite files for consistency
             if (File.Exists(outputFullName))
             {
-                Console.WriteLine($"#{outputFullName} already exists.");
+                Program.WriteLine($"#{outputFullName} already exists.", ConsoleColor.Yellow);
                 Program.ExitApp(2);
             }
 
-            Console.WriteLine($"Saving to {outputFullName}");
+            Program.WriteLine($"Saving to {outputFullName}");
 
             try
             {
@@ -100,7 +100,7 @@ namespace AzurePoolCrossDbGenerator
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Program.WriteLine(ex.Message);
             }
         }
     }

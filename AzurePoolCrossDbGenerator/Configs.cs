@@ -47,12 +47,12 @@ namespace AzurePoolCrossDbGenerator
                 string configPath = Path.Combine(currentDirectory, FileName);
                 if (File.Exists(configPath))
                 {
-                    Console.WriteLine($"{FileName} already exists.");
+                    Program.WriteLine($"{FileName} already exists.", ConsoleColor.Yellow);
                 }
                 else
                 {
                     File.WriteAllText(configPath, configContents, System.Text.Encoding.UTF8);
-                    Console.WriteLine($"{FileName} written.");
+                    Program.WriteLine($"{FileName} written.");
                 }
             }
         }
@@ -132,8 +132,8 @@ namespace AzurePoolCrossDbGenerator
 
             if (string.IsNullOrEmpty(configFileName))
             {
-                Console.WriteLine();
-                Console.WriteLine($"Use -c full_path or -c relative_path.");
+                Program.WriteLine();
+                Program.WriteLine($"Use -c full_path or -c relative_path.", ConsoleColor.Red);
                 Program.ExitApp();
             }
 
@@ -144,8 +144,8 @@ namespace AzurePoolCrossDbGenerator
             // check if the file exists
             if (!System.IO.File.Exists(fullPath))
             {
-                Console.WriteLine();
-                Console.WriteLine($"Missing config file: {fullPath}. Use -c full_path or -c relative_path or -c file_name_in_scripts_subfolder.");
+                Program.WriteLine();
+                Program.WriteLine($"Missing config file: {fullPath}. Use -c full_path or -c relative_path or -c file_name_in_scripts_subfolder.", ConsoleColor.Red);
                 Program.ExitApp();
             }
 
@@ -157,8 +157,8 @@ namespace AzurePoolCrossDbGenerator
             }
             catch (Exception ex)
             {
-                Console.WriteLine();
-                Console.WriteLine("Cannot read the config file: " + ex.Message);
+                Program.WriteLine();
+                Program.WriteLine("Cannot read the config file: " + ex.Message, ConsoleColor.Red);
                 Program.ExitApp();
             }
 

@@ -11,7 +11,7 @@ namespace AzurePoolCrossDbGenerator
 
         static void Main(string[] args)
         {
-            Console.WriteLine($"AzurePoolCrossDbGenerator started in {Directory.GetCurrentDirectory()}.");
+            Program.WriteLine($"AzurePoolCrossDbGenerator started in {Directory.GetCurrentDirectory()}.");
 
             string command = (args.Length > 0) ? args[0]?.Trim().ToLower() : ""; // must be a valid command
             string paramTemplate = null, paramConfig = null, paramGrepFileName = null, paramTargetDir = null, paramRunOn = null;
@@ -112,8 +112,8 @@ namespace AzurePoolCrossDbGenerator
             // check if the file exists
             if (!System.IO.File.Exists(fullPath))
             {
-                Console.WriteLine();
-                Console.WriteLine($"Missing config file: {fullPath}. Use `config` command to initialise the environment.");
+                Program.WriteLine();
+                Program.WriteLine($"Missing config file: {fullPath}. Use `config` command to initialise the environment.", ConsoleColor.Red);
                 ExitApp();
             }
 
@@ -125,8 +125,8 @@ namespace AzurePoolCrossDbGenerator
             }
             catch (Exception ex)
             {
-                Console.WriteLine();
-                Console.WriteLine("Cannot read the config file: " + ex.Message);
+                Program.WriteLine();
+                Program.WriteLine("Cannot read the config file: " + ex.Message, ConsoleColor.Red);
                 ExitApp();
             }
 
@@ -136,9 +136,9 @@ namespace AzurePoolCrossDbGenerator
 
         static void PrintWelcomeMsg()
         {
-            Console.WriteLine($"Usage: `command` -t `template file name or replacement pattern` -c `config file name`.");
-            Console.WriteLine($"No params commands: `init`, `config`.");
-            Console.WriteLine($"See `readme.md` for more info.");
+            Program.WriteLine($"Usage: `command` -t `template file name or replacement pattern` -c `config file name`.");
+            Program.WriteLine($"No params commands: `init`, `config`.");
+            Program.WriteLine($"See `readme.md` for more info.");
             ExitApp();
         }
 
@@ -148,11 +148,26 @@ namespace AzurePoolCrossDbGenerator
         /// </summary>
         public static void ExitApp(int exitCode = 1)
         {
-            Console.WriteLine("Done. Exiting the app.");
+            Program.WriteLine("Done. Exiting the app.");
             //Console.ReadKey();
             Environment.Exit(exitCode);
         }
 
+        /// <summary>
+        /// Write out a console line with a specified colour or the default colour if not specified.
+        /// </summary>
+        /// <param name="Message"></param>
+        /// <param name="consoleColor"></param>
+        public static void WriteLine(string Message = "\n", ConsoleColor consoleColor = ConsoleColor.White)
+        {
+            var colorDefault = Console.ForegroundColor;
+
+            if (consoleColor != ConsoleColor.White) Console.ForegroundColor = consoleColor;
+
+            Console.WriteLine(Message);
+
+            Console.ForegroundColor = colorDefault;
+        }
 
         public class FileNames
         {

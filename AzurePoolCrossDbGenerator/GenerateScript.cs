@@ -35,8 +35,8 @@ namespace AzurePoolCrossDbGenerator
                     }
                 default: 
                     {
-                        Console.WriteLine();
-                        Console.WriteLine($"Missing parameter -o [master | mirror] to tell SqlCmd which db to run the script on.");
+                        Program.WriteLine();
+                        Program.WriteLine($"Missing parameter -o [master | mirror] to tell SqlCmd which db to run the script on.", ConsoleColor.Red);
                         Program.ExitApp();
                         break;
                     }
@@ -56,8 +56,8 @@ namespace AzurePoolCrossDbGenerator
 
                     if (string.IsNullOrEmpty(tableCols))
                     {
-                        Console.WriteLine();
-                        Console.WriteLine($"Missing table definition for {config[i].masterDB}..{config[i].masterTable}");
+                        Program.WriteLine();
+                        Program.WriteLine($"Missing table definition for {config[i].masterDB}..{config[i].masterTable}", ConsoleColor.Red);
                         Program.ExitApp();
                     }
 

@@ -114,8 +114,8 @@ namespace AzurePoolCrossDbGenerator
                 string tableCols = DbAccess.GetTableColumns(prevTable.masterCS, prevTable.masterTable);
                 if (string.IsNullOrEmpty(tableCols))
                 {
-                    Console.WriteLine();
-                    Console.WriteLine($"Missing table definition for {prevTable.masterDB}..{prevTable.masterTable}");
+                    Program.WriteLine();
+                    Program.WriteLine($"Missing table definition for {prevTable.masterDB}..{prevTable.masterTable}", ConsoleColor.Red);
                     Program.ExitApp();
                 }
             }
@@ -141,7 +141,7 @@ namespace AzurePoolCrossDbGenerator
             if (string.IsNullOrEmpty(cs))
             {
                 cs = "connection_string_required"; // a placeholder in case the CS is missing
-                Console.WriteLine($"{config.mirrorDB} / {dbName}: missing connection string.");
+                Program.WriteLine($"{config.mirrorDB} / {dbName}: missing connection string.", ConsoleColor.Red);
                 Program.ExitApp();
             }
 

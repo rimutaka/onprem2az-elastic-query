@@ -201,6 +201,8 @@ It may be easier to create a shortcut in your working folder pointing at `\bin\D
   * generate a PowerShell script with *sqlcmd* to apply modified scripts and stage them in GIT on success
 * **Example**: `replace -t ext_{1}__{2} -g C:\migration-repo\cross-db-read-grep-4v.txt`
 
+`replace` command can be run from any working directory with `config.json`. It only updates files in subfolders relative to the grep file. 
+
 #### Substitution group examples:
 
 * cross-DB read: `ext_{1}__{2}` -> *ext_RemoteDbName__RemoteTableName*
