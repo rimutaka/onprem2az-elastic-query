@@ -93,7 +93,7 @@ namespace AzurePoolCrossDbGenerator
             public string mirrorDB;
             public string masterDB;
             public string masterCS;
-            public string masterTable;
+            public string masterTableOrSP;
 
             public static AllTables[] Load(string configFileName)
             {
@@ -105,6 +105,7 @@ namespace AzurePoolCrossDbGenerator
         {
             public string masterTables;
             public string masterTablesRO;
+            public string masterSPs;
             public string mirrorDB;
             public string serverName;
             public string password;

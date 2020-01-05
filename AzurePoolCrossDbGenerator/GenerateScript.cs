@@ -52,21 +52,29 @@ namespace AzurePoolCrossDbGenerator
                 string tableCols = null;
                 if (templateContents.Contains("{3}"))
                 {
-                    tableCols = DbAccess.GetTableColumns(config[i].masterCS, config[i].masterTable);
+                    tableCols = DbAccess.GetTableColumns(config[i].masterCS, config[i].masterTableOrSP);
 
                     if (string.IsNullOrEmpty(tableCols))
                     {
                         Program.WriteLine();
-                        Program.WriteLine($"Missing table definition for {config[i].masterDB}..{config[i].masterTable}", ConsoleColor.Red);
+                        Program.WriteLine($"Missing table definition for {config[i].masterDB}..{config[i].masterTableOrSP}", ConsoleColor.Red);
                         Program.ExitApp();
                     }
 
                 }
 
-                // interpolate
-                string outputContents = string.Format(templateContents, config[i].mirrorDB, config[i].masterDB, config[i].masterTable, tableCols);
+                // get SP param list if needed
+                var spParams = new DbAccess.ProcedureParts();
+                if (templateContents.Contains("{4}") || templateContents.Contains("{5}") || templateContents.Contains("{6}"))
+                {
+                    spParams = DbAccess.GetProcedureParams(config[i].masterCS, config[i].masterTableOrSP);
+                }
 
-                string fileSuffix = string.Format(paramFileNameTemplate, config[i].mirrorDB, config[i].masterDB, config[i].masterTable);
+                // interpolate
+                string outputContents = string.Format(templateContents, config[i].mirrorDB, config[i].masterDB, config[i].masterTableOrSP, tableCols, 
+                    spParams.fullDef, spParams.listOfNames, spParams.selfAssignment);
+
+                string fileSuffix = string.Format(paramFileNameTemplate, config[i].mirrorDB, config[i].masterDB, config[i].masterTableOrSP);
 
                 string outputFileName = $"{Path.GetFileNameWithoutExtension(templateFileName)}__{fileSuffix}{fileExtSQL}";
 

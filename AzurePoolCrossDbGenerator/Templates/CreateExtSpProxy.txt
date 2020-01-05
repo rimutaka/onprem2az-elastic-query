@@ -1,0 +1,26 @@
+-- Creates a proxy SP for executing an external SP 
+-- it has the same interface as the remote SP
+
+-- 0 - mirrorDB
+-- 1 - masterDB
+-- 2 - masterTable / masterSP
+-- 3 - table columns
+-- 4 - param definitions
+-- 5 - list of params
+-- 6 - param assignments
+
+DROP PROCEDURE IF EXISTS ext__{1}__{2}
+GO
+
+CREATE PROCEDURE ext__{1}__{2}
+{4}
+AS
+
+
+
+/*
+    exec sp_execute_remote @data_source_name  = N'RemoteDB_{1}', 
+		@stmt = N'exec {2} {5}', 
+		@params = N'{4}'
+		{6}; 
+*/

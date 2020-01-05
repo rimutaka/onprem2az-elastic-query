@@ -178,6 +178,7 @@ namespace AzurePoolCrossDbGenerator
             public const string ExternalDataSourceConfig = "config/ExternalDataSource.json";
             public const string TablesConfigMirror = "config/TablesMirror.json";
             public const string TablesConfigReadOnly = "config/TablesReadOnly.json";
+            public const string SPsConfig = "config/ProxySPs.json";
             public const string MasterKeyConfig = "config/MasterKey.json";
             public const string SearchAndReplaceConfig = "config/SearchAndReplace.json";
 

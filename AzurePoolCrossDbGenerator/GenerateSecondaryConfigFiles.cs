@@ -17,6 +17,8 @@ namespace AzurePoolCrossDbGenerator
             // output collections per config file
             List<Configs.AllTables> tableListMirror = new List<Configs.AllTables>(); // config for mirror tables
             List<Configs.AllTables> tableListRO = new List<Configs.AllTables>(); // config for read-only external tables
+            List<Configs.AllTables> spList = new List<Configs.AllTables>(); // config for remote SP proxies
+
             List<Configs.CreateMasterKey> masterKeyList = new List<Configs.CreateMasterKey>(); // config for Master Key config
             List<Configs.CreateExternalDataSource> extDataSrcList = new List<Configs.CreateExternalDataSource>(); // config for ext data source config
 
@@ -52,12 +54,12 @@ namespace AzurePoolCrossDbGenerator
 
                 // check the format
                 if (tableParts.Length != 3) throw new Exception($"Must be a 3-part name: {tableLine}");
-                if (tableParts[0].ToLower()==config.mirrorDB.ToLower()) throw new Exception($"Found a self-reference: {tableLine}");
+                if (tableParts[0].ToLower() == config.mirrorDB.ToLower()) throw new Exception($"Found a self-reference: {tableLine}");
 
                 // add mirror table details
                 var tableItem = new Configs.AllTables()
                 {
-                    masterTable = tableParts[2],
+                    masterTableOrSP = tableParts[2],
                     masterDB = (prevTable.masterDB?.ToLower() != tableParts[0].ToLower()) ? tableParts[0] : null,
                     mirrorDB = (prevTable.mirrorDB?.ToLower() != config.mirrorDB.ToLower()) ? config.mirrorDB : null,
                     masterCS = (prevTable.masterDB?.ToLower() != tableParts[0].ToLower()) ? GetConnectionString(config, tableParts[0]) : null
@@ -111,11 +113,71 @@ namespace AzurePoolCrossDbGenerator
                 }
 
                 // check if the table exists in Master DB
-                string tableCols = DbAccess.GetTableColumns(prevTable.masterCS, prevTable.masterTable);
+                string tableCols = DbAccess.GetTableColumns(prevTable.masterCS, prevTable.masterTableOrSP);
                 if (string.IsNullOrEmpty(tableCols))
                 {
                     Program.WriteLine();
-                    Program.WriteLine($"Missing table definition for {prevTable.masterDB}..{prevTable.masterTable}", ConsoleColor.Red);
+                    Program.WriteLine($"Missing table definition for {prevTable.masterDB}..{prevTable.masterTableOrSP}", ConsoleColor.Red);
+                    Program.ExitApp();
+                }
+            }
+
+            // process the list of SPs
+            prevTable = new Configs.AllTables(); // restart the properties inheritance
+            string[] masterSPs = config.masterSPs.Split("\n");
+            foreach (string spLine in masterSPs)
+            {
+                // get the 3-part name like DB_STATS..TB_MANUALRESERVATION
+                if (string.IsNullOrWhiteSpace(spLine)) continue; // skip empty lines
+                string[] spParts = spLine.Trim().Split(".");
+
+                // check the format
+                if (spParts.Length != 3) throw new Exception($"Must be a 3-part name: {spLine}");
+                if (spParts[0].ToLower() == config.mirrorDB.ToLower()) throw new Exception($"Found a self-reference: {spLine}");
+
+                // add mirror table details
+                var spItem = new Configs.AllTables()
+                {
+                    masterTableOrSP = spParts[2],
+                    masterDB = (prevTable.masterDB?.ToLower() != spParts[0].ToLower()) ? spParts[0] : null,
+                    mirrorDB = (prevTable.mirrorDB?.ToLower() != config.mirrorDB.ToLower()) ? config.mirrorDB : null,
+                    masterCS = (prevTable.masterDB?.ToLower() != spParts[0].ToLower()) ? GetConnectionString(config, spParts[0]) : null
+                };
+
+                spList.Add(spItem); // add to mirror collection
+
+                prevTable.Merge(spItem, true); // merge with overwrite
+
+                // process MasterKeyConfig
+                var masterKeyItem = new Configs.CreateMasterKey();
+                if (masterKeyList.Count == 0) // add full details to the first item only
+                {
+                    masterKeyItem.password = config.password;
+                    masterKeyItem.credential = config.credential;
+                    masterKeyItem.identity = config.identity;
+                    masterKeyItem.secret = config.secret;
+                    // the very first record is actually for the mirror DB, so we have to re-initialise
+                    // not to miss the first master table from the loop
+                    masterKeyItem.localDB = config.mirrorDB;
+                    masterKeyList.Add(masterKeyItem);
+                }
+
+                // process ExternalDataSource config
+                var extDataSrcItem = new Configs.CreateExternalDataSource();
+                if (spList.Count == 1) // add full details to the first item only
+                {
+                    extDataSrcItem.serverName = config.serverName;
+                    extDataSrcItem.credential = config.credential;
+                    extDataSrcItem.localDB = config.mirrorDB;
+                }
+                extDataSrcItem.externalDB = spItem.masterDB;
+                extDataSrcList.Add(extDataSrcItem);
+
+                // check if the SP exists in Master DB
+                if (! DbAccess.CheckProcedureExists(prevTable.masterCS, prevTable.masterTableOrSP))
+                {
+                    Program.WriteLine();
+                    Program.WriteLine($"Missing SP definition for {prevTable.masterDB}..{prevTable.masterTableOrSP}", ConsoleColor.Red);
                     Program.ExitApp();
                 }
             }
@@ -123,6 +185,7 @@ namespace AzurePoolCrossDbGenerator
             // save as files
             if (tableListMirror.Count > 0) Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.TablesConfigMirror, JsonConvert.SerializeObject(tableListMirror.ToArray(), jsonSettings));
             if (tableListRO.Count > 0) Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.TablesConfigReadOnly, JsonConvert.SerializeObject(tableListRO.ToArray(), jsonSettings));
+            if (spList.Count > 0) Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.SPsConfig, JsonConvert.SerializeObject(spList.ToArray(), jsonSettings));
             Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.MasterKeyConfig, JsonConvert.SerializeObject(masterKeyList.ToArray(), jsonSettings));
             Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.ExternalDataSourceConfig, JsonConvert.SerializeObject(extDataSrcList.ToArray(), jsonSettings));
         }

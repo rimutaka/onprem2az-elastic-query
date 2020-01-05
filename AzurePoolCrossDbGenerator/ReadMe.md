@@ -47,6 +47,7 @@ This file is auto-generated from `config.json`. You may have to modify the file 
 This file is auto-generated from `config.json`. You may have to modify this file if the credentials differ between DBs.
 * `TablesMirror.json` - list of external tables that should be mirrored for writing locally.
 * `TablesReadOnly.json` - list of external tables for remote read-only access.
+* `SPsConfig.json` - list of external SPs accessed via a local proxy SP.
 
 ### Config property inheritance
 
@@ -105,6 +106,8 @@ It's OK to omit the schema name. The all will default it to `dbo`. The app will 
 
 `masterTablesRO` - a list of read-only remote tables. Use the same format as above. This list is used to generate an external table in the current DB (mirror DB).
 
+`masterSPs` - a list of remote SPs. Use the same format as above. This list is used to generate proxy SPs in the current DB (mirror DB).
+
 ### Config file generation
 
 Run `azpm init` to generate the directory structure and `config.json` with blank values.
@@ -127,7 +130,10 @@ The templates are text files with .Net string interpolation via *String.Format(.
 * {0} - mirrorDB
 * {1} - masterDB
 * {2} - masterTable
-* {3} - table columns
+* {3} - table columns with their definitions
+* {4} - list of SP param definitions
+* {5} - list of SP params
+* {6} - list of SP param assignments
 
 Originally, the templates reside in *templates* folder of the C# project and are copied to the working folder by `init` command.
 You can modify them locally, copy, rename and then specify the file name to be used with `-t` param.
@@ -195,7 +201,7 @@ It may be easier to create a shortcut in your working folder pointing at `\bin\D
   * required `-g` - absolute path to a grep output file with the list of strings to replace, e.g. `-g c:\myfolder\all-insert-grep.txt`
   * optional `-c` to specify the source config from a file other than the default `config.json`
   * required `-t` - a replacement template with `{0,1,2,3}` substitution groups, e.g. `ext_{1}__{2}`
-  * substitution groups: `{0}` = the DB that owns the script, `{1}` = the DB name from the 3-part name being replaced, `{2}` = the table name, `{2}` = the schema name
+  * substitution groups: `{0}` = the DB that owns the script, `{1}` = the DB name from the 3-part name being replaced, `{2}` = the table name, `{3}` = the schema name
 * **Action 1**: 
   * replace 3-part names in the SQL scripts listed in the grep file with names built with `-t` template
   * generate a PowerShell script with *sqlcmd* to apply modified scripts and stage them in GIT on success
