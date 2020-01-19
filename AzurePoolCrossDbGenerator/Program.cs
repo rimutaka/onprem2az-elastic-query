@@ -11,9 +11,11 @@ namespace AzurePoolCrossDbGenerator
 
         static void Main(string[] args)
         {
-            Program.WriteLine($"AzurePoolCrossDbGenerator started in {Directory.GetCurrentDirectory()}.");
+            Program.WriteLine($"AzurePoolCrossDbGenerator started in {Directory.GetCurrentDirectory()} with params:");
 
             string command = (args.Length > 0) ? args[0]?.Trim().ToLower() : ""; // must be a valid command
+            Program.WriteLine($"Command: {command}");
+
             string paramTemplate = null, paramConfig = null, paramGrepFileName = null, paramTargetDir = null, paramRunOn = null;
 
             // extract additional params
@@ -24,26 +26,31 @@ namespace AzurePoolCrossDbGenerator
                     case "-t":
                         {
                             paramTemplate = args[i + 1];
+                            Program.WriteLine($"Template: {paramTemplate}");
                             break;
                         }
                     case "-c":
                         {
                             paramConfig = args[i + 1];
+                            Program.WriteLine($"Config: {paramConfig}");
                             break;
                         }
                     case "-g":
                         {
                             paramGrepFileName = args[i + 1];
+                            Program.WriteLine($"Grep: {paramGrepFileName}");
                             break;
                         }
                     case "-d":
                         {
                             paramTargetDir = args[i + 1];
+                            Program.WriteLine($"Target dir: {paramTargetDir}");
                             break;
                         }
                     case "-o":
                         {
                             paramRunOn = args[i + 1];
+                            Program.WriteLine($"Run on: {paramRunOn}");
                             break;
                         }
                 }

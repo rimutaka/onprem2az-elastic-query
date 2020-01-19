@@ -26,7 +26,7 @@ namespace AzurePoolCrossDbGenerator
                 // interpolate
                 string outputContents = string.Format(templateContents, config[i].localDB, config[i].password, config[i].credential, config[i].identity, config[i].secret);
 
-                string outputFileName = $"CreateMasterKey_{config[i].localDB}{fileExtSQL}";
+                string outputFileName = $"CreateMasterKey__{config[i].localDB}__x__x{fileExtSQL}";
 
                 Generators.SaveGeneratedScript(outputContents, outputFileName, i);
             }

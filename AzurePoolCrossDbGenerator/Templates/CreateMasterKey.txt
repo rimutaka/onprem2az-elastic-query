@@ -6,7 +6,24 @@
 
 -- initialise the master key required to store other passwords in the DB
 -- one per DB and can only be run once
- CREATE MASTER KEY ENCRYPTION BY PASSWORD = '{1}';
- CREATE DATABASE SCOPED CREDENTIAL {2}
- WITH IDENTITY = '{3}',
- SECRET = '{4}';
+if exists (select 1 from sys.symmetric_keys where name ='##MS_DatabaseMasterKey##')
+	begin
+		ALTER MASTER KEY REGENERATE WITH ENCRYPTION BY PASSWORD = '{1}';
+	end
+else
+	begin
+		CREATE MASTER KEY ENCRYPTION BY PASSWORD = '{1}';
+	end
+
+if exists (select 1 from sys.database_scoped_credentials where name ='{2}')
+	begin
+		ALTER DATABASE SCOPED CREDENTIAL {2}
+		 WITH IDENTITY = '{3}',
+		 SECRET = '{4}';
+	end
+else
+	begin
+		 CREATE DATABASE SCOPED CREDENTIAL {2}
+		 WITH IDENTITY = '{3}',
+		 SECRET = '{4}';
+	end

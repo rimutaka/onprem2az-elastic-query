@@ -124,7 +124,7 @@ namespace AzurePoolCrossDbGenerator
 
             // process the list of SPs
             prevTable = new Configs.AllTables(); // restart the properties inheritance
-            string[] masterSPs = config.masterSPs.Split("\n");
+            string[] masterSPs = (config.masterSPs ?? "").Split("\n");
             foreach (string spLine in masterSPs)
             {
                 // get the 3-part name like DB_STATS..TB_MANUALRESERVATION
