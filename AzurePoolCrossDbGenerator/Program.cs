@@ -89,7 +89,7 @@ namespace AzurePoolCrossDbGenerator
                     }
                 case Commands.GenerateSqlCmdBatch:
                     {
-                        Generators.GenerateSqlCmdBatch(Configs.InitialConfig.Load(paramConfig), paramTargetDir);
+                        Generators.GenerateSqlCmdBatch(Configs.InitialConfig.Load(paramConfig), paramTargetDir, paramRunOn);
                         break;
                     }
                 case Commands.ReplaceInSqlFiles:

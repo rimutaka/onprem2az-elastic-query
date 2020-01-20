@@ -12,16 +12,29 @@ namespace AzurePoolCrossDbGenerator
         /// Generate a .bat file for executing all SQL scripts in the current directory. 
         /// </summary>
         /// <param name="configFile"></param>
-        public static void GenerateSqlCmdBatch(Configs.InitialConfig config, string targetDirectory)
+        public static void GenerateSqlCmdBatch(Configs.InitialConfig config, string targetDirectory, string oParam)
         {
             // check if we have the server name
-            string serverName = config.localServer;
-            if (string.IsNullOrEmpty(serverName))
+            bool runOnAz = string.Equals(oParam, "az", StringComparison.OrdinalIgnoreCase);
+            if (!string.IsNullOrEmpty(oParam) && !runOnAz)
             {
                 Program.WriteLine();
-                Program.WriteLine("Missing `localServer` param in `/config/config.json`", ConsoleColor.Red);
+                Program.WriteLine("Param -o can be set to AZ (run on Azure) or omitted (run locally).", ConsoleColor.Red);
                 Program.ExitApp();
             }
+
+            // check if we have the server name
+            string serverName = (runOnAz)? config.serverName + ".database.windows.net" : config.localServer;
+            if (string.IsNullOrEmpty(serverName))
+            {
+                string serverParamName = (runOnAz) ? "serverName" : "localServer";
+                Program.WriteLine();
+                Program.WriteLine($"Missing `{serverParamName}` param in `/config/config.json`", ConsoleColor.Red);
+                Program.ExitApp();
+            }
+
+            // prepare identity (user name) for Azure
+            string userName = (runOnAz) ? $"-U '{config.identity}'" : "";
 
             // the target directory can be relative or absolute
             if (!Path.IsPathRooted(targetDirectory))
@@ -40,6 +53,8 @@ namespace AzurePoolCrossDbGenerator
                 Program.WriteLine($"Empty folder: {targetDirectory}", ConsoleColor.Yellow);
                 Program.ExitApp(2);
             }
+
+            
 
             // loop thru the files
             var sb = new System.Text.StringBuilder();
@@ -60,7 +75,7 @@ namespace AzurePoolCrossDbGenerator
                 }
                 string dbName = match.Groups[1]?.Value;
 
-                sb.AppendLine($"sqlcmd -b -S {serverName} -d {dbName} -i \"{fileNameOnly}\"");
+                sb.AppendLine($"sqlcmd -b -S \"{serverName}\" {userName} -d {dbName} -i \"{fileNameOnly}\"");
                 sb.AppendLine($"if ($LASTEXITCODE -eq 0) {{git add \"{fileNameOnly}\"}}");
             }
 

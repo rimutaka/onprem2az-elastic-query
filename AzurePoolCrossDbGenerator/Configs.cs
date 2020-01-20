@@ -38,6 +38,30 @@ namespace AzurePoolCrossDbGenerator
             }
 
             /// <summary>
+            /// Make a clone of the current instance.
+            /// </summary>
+            /// <returns></returns>
+            public GenericConfigEntry Clone()
+            {
+                // get list of public fields
+                Type myType = this.GetType();
+                FieldInfo[] myField = myType.GetFields();
+
+                // a new copy for the clone
+                GenericConfigEntry newCopy = (GenericConfigEntry)Activator.CreateInstance(myType);
+
+                // copy values on those with missing values
+                foreach (var field in myField)
+                {
+                    string name = field.Name;
+                    string value = (string)myType.GetField(name).GetValue(this);
+                    myType.GetField(name).SetValue(newCopy, value);
+                }
+
+                return newCopy;
+            }
+
+            /// <summary>
             /// Save a single config file. No overwrites.
             /// </summary>
             public static void SaveConfigFile(string FileName, string configContents)

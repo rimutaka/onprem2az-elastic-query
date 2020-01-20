@@ -3,6 +3,7 @@
 -- 2 - remote server name
 -- 3 - local credential name (shared between all remote DBs)
 
+if exists (select 1 from sys.external_data_sources where name ='RemoteDB_{1}')
 DROP EXTERNAL DATA SOURCE [RemoteDB_{1}]
 GO
 

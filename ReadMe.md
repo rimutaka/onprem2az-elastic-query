@@ -20,6 +20,7 @@ The grep file must be located in the root folder of the DB solution.
 The structure of config files differs for different commands.
 * `-d target_directory` - tells the app where to find *.sql* files for the command to process.
 Use an absolute path or a name of subfolder under `scripts`.
+* `-o master|mirror|az` - where to run the script
 
 ### Specific behavior
 
@@ -192,6 +193,7 @@ It may be easier to create a shortcut in your working folder pointing at `\bin\D
 * **Params**: 
   * optional `-c` to specify the source config from a file other than the default `config.json`
   * required `-d` to specify the directory with SQL scripts, e.g. `-d AlterMasterTable` or `-d c:\myfolder`
+  * optional `-o az` - the script will run on the Azure server listed in *serverName* in the config, otherwise use *localServer* value.
 * **Action**: generate a PowerShell script to run all the scripts in `-d` folder and stage them in GIT on success.
 * **Example 1**: `azpm sqlcmd -d AlterMasterTable` - find SQL scripts in *./scripts/AlterMasterTable/* directory.
 * **Example 2**: `azpm sqlcmd -d c:\myfolder\` - find SQL scripts in *c:\myfolder* directory.
