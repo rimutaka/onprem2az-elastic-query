@@ -87,6 +87,11 @@ namespace AzurePoolCrossDbGenerator
                         Generators.GenerateScript(Configs.AllTables.Load(paramConfig), paramTemplate, paramRunOn);
                         break;
                     }
+                case Commands.AltTableColumnTypes:
+                    {
+                        Generators.GenerateAltColumnsScript(Configs.AllTables.Load(paramConfig));
+                        break;
+                    }
                 case Commands.GenerateSqlCmdBatch:
                     {
                         Generators.GenerateSqlCmdBatch(Configs.InitialConfig.Load(paramConfig), paramTargetDir, paramRunOn);
@@ -202,6 +207,7 @@ namespace AzurePoolCrossDbGenerator
             public const string GenericScriptGeneration = "template";
             public const string GenerateSqlCmdBatch = "sqlcmd";
             public const string ReplaceInSqlFiles = "replace";
+            public const string AltTableColumnTypes = "fixtypes";
         }
 
     }

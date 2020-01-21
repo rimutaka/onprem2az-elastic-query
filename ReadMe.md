@@ -9,8 +9,10 @@ This utility generates a set of scripts to enable existing MS SQL DBs to perform
 * `key` - generates *CREATE MASTER KEY* statements.
 * `source` - generates *CREATE EXTERNAL DATA SOURCE* statements
 * `template` - generates multiple scripts using a template.
+* `fixtypes` - generate ALTER COLUMN scripts for incompatible SQL type, e.g. *image* or *text*.
 * `sqlcmd` - prepare a PowerShell script for executing all *.sql* files in the specified directory with *SqlCmd* utility.
 * `replace` - replaces parts of SQL code for refactoring.
+
 
 ### Parameters
 * `-t template_name` - name of the file inside `templates` folder or an absolute path to a template file elsewhere
@@ -188,6 +190,13 @@ It may be easier to create a shortcut in your working folder pointing at `\bin\D
   * the config file must be the same format as *TablesMirror.json* to correspond to *Configs.AllTables* class in the C# code.
 * **Action**: generate SQL scripts using `-t` template with input from `-c` config, including table definitions.
 * **Example**: `azpm template -t CreateExtTable.txt -c TablesMirror.json -o master`
+
+### fixtypes
+* **Params**: 
+  * required `-c` - config file name from *config* sub-folder, e.g. `-c TablesMirror.json` or `-c c:\myfolder\TablesMirror-config.json`
+  * the config file must be the same format as *TablesMirror.json* to correspond to *Configs.AllTables* class in the C# code.
+* **Action**: generate *ALTER TABLE COLUMN* SQL scripts for tables listed in the config file to change incompatible SQL types to compatible ones. E.g. *image* -> *varbinary(max)*.
+* **Example**: `azpm fixtypes -c TablesReadOnly.json`
 
 ### sqlcmd
 * **Params**: 

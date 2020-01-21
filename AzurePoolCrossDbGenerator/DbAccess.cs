@@ -44,6 +44,12 @@ namespace AzurePoolCrossDbGenerator
 
                         // add to the list
                         sb.AppendLine(ItemDefinition(colName, colType, colLen, colPrecision, colScale));
+
+                        // display a warning if incompatible data type was encountered
+                        if (colType=="text" || colType == "image")
+                        {
+                            Program.WriteLine($"Incompatible type: {tableName}..{colName} {colType}", ConsoleColor.Red);
+                        }
                     }
                 }
                 finally
@@ -56,6 +62,60 @@ namespace AzurePoolCrossDbGenerator
             return sb.ToString().TrimEnd(trailingChars.ToCharArray());
         }
 
+        
+        /// <summary>
+        /// Returns a list of columns not supported by ElasticQuery for generating ALTER TABLE statements
+        /// </summary>
+        /// <param name="connectionString"></param>
+        /// <param name="tableName"></param>
+        /// <returns></returns>
+        public static List<ColumnDefinition> GetIncompatibleTableColumns(string connectionString, string tableName)
+        {
+            // select column definitions from INFORMATION_SCHEMA.COLUMNS
+            string queryString = @"select COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE 
+                from INFORMATION_SCHEMA.COLUMNS
+                where table_name = @table_name";
+
+            var outColumns = new List<ColumnDefinition>(); // output container
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                SqlCommand command = new SqlCommand(queryString, connection);
+                command.Parameters.AddWithValue("@table_name", tableName);
+                connection.Open();
+                SqlDataReader reader = command.ExecuteReader();
+                try
+                {
+                    while (reader.Read())
+                    {
+                        // read the column definition
+                        var colDef = new ColumnDefinition
+                        {
+                            colName = reader["COLUMN_NAME"].ToString(),
+                            colType = reader["DATA_TYPE"].ToString(),
+                            colLen = reader["CHARACTER_MAXIMUM_LENGTH"].ToString(),
+                            colPrecision = reader["NUMERIC_PRECISION"].ToString(),
+                            colScale = reader["NUMERIC_SCALE"].ToString()
+                        };
+
+                        // add columns of a matching type
+                        if (string.Equals(colDef.colType, "text", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(colDef.colType, "image", StringComparison.OrdinalIgnoreCase)
+                            )
+                        {
+                            outColumns.Add(colDef);
+                        }
+                    }
+                }
+                finally
+                {
+                    reader.Close();
+                }
+            }
+
+            // remove trailing , and new line
+            return outColumns;
+        }
 
         /// <summary>
         /// Get lists of param names, param definitions and param assignments for building calls to remote SPs.
@@ -174,8 +234,17 @@ namespace AzurePoolCrossDbGenerator
                 if (colLen == "-1" || long.Parse(colLen) > 8000) colLen = "max";
             }
 
-            // image and text have length, but not in the SQL definitions
-            if (colType == "image" || colType == "text") colLen = "";
+            // image and text are not supported and have to be replaced
+            if (colType == "image")
+            {
+                colType = "varbinary";
+                colLen = "max";
+            }
+            if (colType == "text")
+            {
+                colType = "nvarchar";
+                colLen = "max";
+            }
 
             // text types have length - nvarchar(255)
             if (!String.IsNullOrEmpty(colLen)) colType += $"({colLen})";
@@ -206,5 +275,13 @@ namespace AzurePoolCrossDbGenerator
             public string selfAssignment = "";
         }
 
+        public class ColumnDefinition
+        {
+            public string colName = "";
+            public string colType = "";
+            public string colLen = "";
+            public string colPrecision = "";
+            public string colScale = "";
+        }
     }
 }
