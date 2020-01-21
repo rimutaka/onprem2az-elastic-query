@@ -6,7 +6,14 @@
 -- 2 - masterTable
 -- 3 - table columns
 
---DROP EXTERNAL TABLE ext_{0}__{2}
+if exists(select 1 from sys.external_tables where [name] ='ext_{0}__{2}')
+	begin
+		DROP EXTERNAL TABLE ext_{0}__{2}
+	end
+	else
+	begin
+		DROP TABLE IF EXISTS ext_{0}__{2}
+	end
 GO
 
 CREATE EXTERNAL TABLE ext_{0}__{2}(
