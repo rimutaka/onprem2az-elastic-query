@@ -229,7 +229,7 @@ namespace AzurePoolCrossDbGenerator
         static string ItemDefinition(string colName, string colType, string colLen, string colPrecision, string colScale)
         {
             // adjust long text types to (max)
-            if (colType == "nvarchar" || colType == "varchar")
+            if (colType == "nvarchar" || colType == "varchar" || colType == "varbinary")
             {
                 if (colLen == "-1" || long.Parse(colLen) > 8000) colLen = "max";
             }
