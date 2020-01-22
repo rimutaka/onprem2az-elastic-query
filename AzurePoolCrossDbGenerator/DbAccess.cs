@@ -62,7 +62,52 @@ namespace AzurePoolCrossDbGenerator
             return sb.ToString().TrimEnd(trailingChars.ToCharArray());
         }
 
-        
+        /// <summary>
+        /// Returns a comma-separated list of table column names, excluding identity columns
+        /// </summary>
+        /// <param name="connectionString"></param>
+        /// <param name="tableName"></param>
+        /// <returns></returns>
+        public static string GetInsertableTableColumnNames(string connectionString, string tableName)
+        {
+            // select column definitions from INFORMATION_SCHEMA.COLUMNS
+            string queryString = @"select c.name from sys.all_columns c, sys.tables t 
+                                    where c.object_id = t.object_id and t.name = @table_name and is_identity = 0
+                                    order by column_id";
+
+            StringBuilder sb = new StringBuilder();
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                SqlCommand command = new SqlCommand(queryString, connection);
+                command.Parameters.AddWithValue("@table_name", tableName);
+                connection.Open();
+                SqlDataReader reader = command.ExecuteReader();
+                try
+                {
+                    while (reader.Read())
+                    {
+                        // read the column definition
+                        string colName = reader["name"].ToString();
+
+                        // add to the list
+                        sb.Append("[");
+                        sb.Append(colName);
+                        sb.Append("]");
+                        sb.AppendLine(",");
+                    }
+                }
+                finally
+                {
+                    reader.Close();
+                }
+            }
+
+            // remove trailing , and new line
+            return sb.ToString().TrimEnd(trailingChars.ToCharArray());
+        }
+
+
         /// <summary>
         /// Returns a list of columns not supported by ElasticQuery for generating ALTER TABLE statements
         /// </summary>

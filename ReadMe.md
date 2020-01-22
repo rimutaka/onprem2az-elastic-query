@@ -137,6 +137,7 @@ The templates are text files with .Net string interpolation via *String.Format(.
 * {4} - list of SP param definitions
 * {5} - list of SP params
 * {6} - list of SP param assignments
+* {7} - list of table column names, excluding identity columns
 
 Originally, the templates reside in *templates* folder of the C# project and are copied to the working folder by `init` command.
 You can modify them locally, copy, rename and then specify the file name to be used with `-t` param.

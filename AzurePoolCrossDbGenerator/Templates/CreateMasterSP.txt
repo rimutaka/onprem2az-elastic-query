@@ -5,6 +5,7 @@
 -- 1 - masterDB
 -- 2 - masterTable
 -- 3 - table columns
+-- 7 - list of table column names, excluding identity columns
 
 DROP PROCEDURE IF EXISTS sp_CopyFrom_{0}__{2}
 GO
@@ -13,5 +14,12 @@ CREATE PROCEDURE sp_CopyFrom_{0}__{2}
 (@mirror_key AS UNIQUEIDENTIFIER)
 AS
 BEGIN
-    --INSERT INTO {2} SELECT * FROM ext_{0}__{2} WHERE mirror_key = @mirror_key 
+INSERT INTO {2} 
+({7},
+mirror_key)
+SELECT 
+{7},
+mirror_key
+FROM ext_{0}__{2} 
+WHERE mirror_key = @mirror_key 
 END

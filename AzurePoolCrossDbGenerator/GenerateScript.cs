@@ -70,9 +70,16 @@ namespace AzurePoolCrossDbGenerator
                     spParams = DbAccess.GetProcedureParams(config[i].masterCS, config[i].masterTableOrSP);
                 }
 
+                // get a list of non-identity columns for insert statements, if needed
+                string insertableColumnNames = "";
+                if (templateContents.Contains("{7}"))
+                {
+                    insertableColumnNames = DbAccess.GetInsertableTableColumnNames(config[i].masterCS, config[i].masterTableOrSP);
+                }
+
                 // interpolate
                 string outputContents = string.Format(templateContents, config[i].mirrorDB, config[i].masterDB, config[i].masterTableOrSP, tableCols, 
-                    spParams.fullDef, spParams.listOfNames, spParams.selfAssignment);
+                    spParams.fullDef, spParams.listOfNames, spParams.selfAssignment, insertableColumnNames);
 
                 string fileSuffix = string.Format(paramFileNameTemplate, config[i].mirrorDB, config[i].masterDB, config[i].masterTableOrSP);
 
