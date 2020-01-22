@@ -15,12 +15,7 @@ GO
 CREATE PROCEDURE ext__{1}__{2}
 {4}
 AS
-
-
-
-/*
     exec sp_execute_remote @data_source_name  = N'RemoteDB_{1}', 
 		@stmt = N'exec {2} {5}', 
 		@params = N'{4}'
 		{6}; 
-*/
