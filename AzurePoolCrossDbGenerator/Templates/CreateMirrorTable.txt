@@ -10,8 +10,7 @@ DROP TABLE IF EXISTS mr_{1}__{2}
 GO
 
 CREATE TABLE mr_{1}__{2}(
-{3},
-mirror_key UNIQUEIDENTIFIER NULL
+{3}
 )
 
 GO

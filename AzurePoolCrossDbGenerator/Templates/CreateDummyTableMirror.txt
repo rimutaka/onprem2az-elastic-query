@@ -11,8 +11,7 @@ DROP TABLE IF EXISTS ext_{0}__{2}
 GO
 
 CREATE TABLE ext_{0}__{2}(
-{3},
-mirror_key UNIQUEIDENTIFIER NULL
+{3}
 )
 
 GO
