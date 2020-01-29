@@ -15,11 +15,9 @@ CREATE PROCEDURE sp_CopyFrom_{0}__{2}
 AS
 BEGIN
 INSERT INTO {2} 
-({7},
-mirror_key)
+({7})
 SELECT 
-{7},
-mirror_key
+{7}
 FROM ext_{0}__{2} 
 WHERE mirror_key = @mirror_key 
 END

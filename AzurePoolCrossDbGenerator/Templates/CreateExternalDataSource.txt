@@ -4,12 +4,16 @@
 -- 3 - local credential name (shared between all remote DBs)
 
 if exists (select 1 from sys.external_data_sources where name ='RemoteDB_{1}')
-DROP EXTERNAL DATA SOURCE [RemoteDB_{1}]
-GO
-
-CREATE EXTERNAL DATA SOURCE [RemoteDB_{1}] 
-	WITH (TYPE = RDBMS, LOCATION = N'{2}.database.windows.net', 
-		CREDENTIAL = [{3}], DATABASE_NAME = N'{1}')
-GO
+BEGIN
+	ALTER EXTERNAL DATA SOURCE [RemoteDB_{1}] SET
+		LOCATION = N'{2}.database.windows.net', 
+		CREDENTIAL = [{3}]
+END
+ELSE
+BEGIN
+	CREATE EXTERNAL DATA SOURCE [RemoteDB_{1}] 
+		WITH (TYPE = RDBMS, LOCATION = N'{2}.database.windows.net', 
+			CREDENTIAL = [{3}], DATABASE_NAME = N'{1}')
+END
 
 
