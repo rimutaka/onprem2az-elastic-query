@@ -82,9 +82,14 @@ namespace AzurePoolCrossDbGenerator
                         Generators.CreateExternalDataSource(Configs.CreateExternalDataSource.Load(paramConfig));
                         break;
                     }
-                case Commands.GenericScriptGeneration:
+                case Commands.ScriptGenerationForTablesAnsSPs:
                     {
                         Generators.GenerateScript(Configs.AllTables.Load(paramConfig), paramTemplate, paramRunOn);
+                        break;
+                    }
+                case Commands.ScriptGenerationGeneric:
+                    {
+                        Generators.GenerateScript(Configs.InitialConfig.Load(paramConfig), paramTemplate);
                         break;
                     }
                 case Commands.AltTableColumnTypes:
@@ -204,7 +209,8 @@ namespace AzurePoolCrossDbGenerator
             public const string GenerateExternalDataSources = "sources";
             public const string GenerateBlankConfigFiles = "init";
             public const string GenerateSecondaryConfigFiles = "config";
-            public const string GenericScriptGeneration = "template";
+            public const string ScriptGenerationForTablesAnsSPs = "template";
+            public const string ScriptGenerationGeneric = "interpolate";
             public const string GenerateSqlCmdBatch = "sqlcmd";
             public const string ReplaceInSqlFiles = "replace";
             public const string AltTableColumnTypes = "fixtypes";

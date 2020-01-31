@@ -139,6 +139,8 @@ namespace AzurePoolCrossDbGenerator
             public string twoway;
             public string connections;
             public string localServer;
+            public string loggingCredentialSecret;
+            public string loggingAzStorageContainerUrl;
 
             public static InitialConfig Load(string configFileName)
             {

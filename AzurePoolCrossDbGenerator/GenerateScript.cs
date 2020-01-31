@@ -19,28 +19,7 @@ namespace AzurePoolCrossDbGenerator
 
             string templateContents = Generators.GetTemplateContents(templateFileName);
 
-            string paramFileNameTemplate = null;
-
-            switch (paramRunOn)
-            {
-                case "master":
-                    {
-                        paramFileNameTemplate = Program.FileNames.OutputFileNameMaskRunOnMaster;
-                        break;
-                    }
-                case "mirror":
-                    {
-                        paramFileNameTemplate = Program.FileNames.OutputFileNameMaskRunOnMirror;
-                        break;
-                    }
-                default: 
-                    {
-                        Program.WriteLine();
-                        Program.WriteLine($"Missing parameter -o [master | mirror] to tell SqlCmd which db to run the script on.", ConsoleColor.Red);
-                        Program.ExitApp();
-                        break;
-                    }
-            }
+            string paramFileNameTemplate = GetOutputFileNameMask(paramRunOn);
 
             // generate output one file at a time
             for (int i = 0; i < config.Length; i++)

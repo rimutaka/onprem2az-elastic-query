@@ -1,0 +1,90 @@
+/*** Log and view AZ SQL DB error messages ***/
+
+SET QUOTED_IDENTIFIER ON
+SET ANSI_NULLS ON
+GO
+
+/*** Create or alter the credential for accessing blob storage ***/
+if exists (select 1 from sys.database_scoped_credentials where name ='{{loggingAzStorageContainerUrl}}')
+	begin
+		ALTER DATABASE SCOPED CREDENTIAL [{{loggingAzStorageContainerUrl}}]
+		 WITH IDENTITY = 'SHARED ACCESS SIGNATURE',
+		 SECRET = '{{loggingCredentialSecret}}'
+		 -- !!! Remove leading ??? in the token, if present !!!
+		 -- get the key from Shared Access Signature tab in AZ Storage Account
+	end
+else
+	begin
+		 CREATE DATABASE SCOPED CREDENTIAL [{{loggingAzStorageContainerUrl}}]
+		 WITH IDENTITY = 'SHARED ACCESS SIGNATURE',
+		 SECRET = '{{loggingCredentialSecret}}';
+	end
+GO
+
+
+/*** Create or alter the event session ***/
+if exists (select 1 from sys.database_event_sessions where name = 'sql_error_log_az') DROP EVENT SESSION sql_error_log_az ON DATABASE
+-- sys.dm_xe_database_sessions contains only active sessions
+-- sys.database_event_sessions contains all sessions
+GO
+
+CREATE EVENT SESSION sql_error_log_az ON DATABASE
+	ADD EVENT sqlserver.error_reported(ACTION (sqlserver.client_app_name, sqlserver.client_hostname, sqlserver.session_id, sqlserver.sql_text,sqlserver.username))
+	ADD TARGET package0.event_file (SET filename = '{{loggingAzStorageContainerUrl}}/{{mirrorDB}}_errors.xel', max_file_size=(50)) WITH (MAX_MEMORY = 10 MB, MAX_DISPATCH_LATENCY = 3 SECONDS);
+GO
+
+ALTER EVENT SESSION [sql_error_log_az] ON DATABASE 
+	ADD TARGET package0.ring_buffer (SET max_memory = (1000), max_events_limit = 50 )
+GO
+
+ALTER EVENT SESSION sql_error_log_az ON DATABASE STATE = START;
+GO
+
+
+/*** Create an SP for log reading ***/
+DROP PROCEDURE IF EXISTS errlog
+GO
+
+CREATE PROCEDURE errlog (@filename nvarchar(255) = null)
+AS
+
+DECLARE @events table(td xml) -- hold the list of <event/> tags, one per row
+
+IF (@filename is null)
+BEGIN -- read data from the local in-memory event buffer
+
+	DECLARE @x XML -- contains <RingBufferTarget> with multiple <event/> tags.
+
+	SELECT @x = CONVERT(xml, target_data)
+		FROM sys.dm_xe_database_sessions AS s
+		JOIN sys.dm_xe_database_session_targets AS t ON t.event_session_address = s.address
+		WHERE s.name = N'sql_error_log_az' and t.target_name = 'ring_buffer';
+
+	INSERT INTO @events select T.Item.query('.') FROM  @x.nodes('/RingBufferTarget/event') AS T(Item)
+
+END
+ELSE
+BEGIN -- read event data from the blob storage using the supplied file name
+
+	INSERT INTO @events SELECT CONVERT(xml, event_data) FROM sys.fn_xe_file_target_read_file (@filename, null, null, null)
+
+END
+
+-- declare an intermediate table to speed up sorting
+DECLARE @log table ([type] nvarchar(255), ts datetime, [err_num] int, [msg] nvarchar(255), [code] nvarchar(max), [session] int, [host] nvarchar(255), [app] nvarchar(255))
+
+INSERT INTO @log
+	SELECT [type] = td.value('(/event/@name)[1]', 'nvarchar(255)'),
+		[ts] = td.value('(/event/@timestamp)[1]', 'datetime'),
+		[err_num] = td.value('(/event/data[@name = "error_number"]/value)[1]', 'int'),
+		[msg] = td.value('(/event/data[@name = "message"]/value)[1]', 'nvarchar(255)'),
+		[code] = td.value('(/event/action[@name = "sql_text"]/value)[1]', 'nvarchar(max)'),
+		[session] = td.value('(/event/action[@name = "session_id"]/value)[1]', 'int'),
+		[host] = td.value('(/event/action[@name = "client_hostname"]/value)[1]', 'nvarchar(255)'),
+		[app] = td.value('(/event/action[@name = "client_app_name"]/value)[1]', 'nvarchar(255)')
+	FROM  @events -- doing sort here slows down the response significantly, so we use an intermediate table 
+
+-- return the results
+SELECT * FROM @log ORDER BY ts DESC 
+
+GO

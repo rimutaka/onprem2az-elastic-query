@@ -103,5 +103,32 @@ namespace AzurePoolCrossDbGenerator
                 Program.WriteLine(ex.Message);
             }
         }
+
+        /// <summary>
+        /// Get the mask for output file name depending on the value of paramRunOn
+        /// </summary>
+        /// <param name="paramRunOn"></param>
+        /// <returns></returns>
+        static string GetOutputFileNameMask(string paramRunOn)
+        {
+            switch (paramRunOn)
+            {
+                case "master":
+                    {
+                        return Program.FileNames.OutputFileNameMaskRunOnMaster;
+                    }
+                case "mirror":
+                    {
+                        return Program.FileNames.OutputFileNameMaskRunOnMirror;
+                    }
+            }
+
+            Program.WriteLine();
+            Program.WriteLine($"Missing parameter -o [master | mirror] to tell SqlCmd which db to run the script on.", ConsoleColor.Red);
+            Program.ExitApp();
+
+            return null; // this is really redundant, but keeps the lint happy
+
+        }
     }
 }

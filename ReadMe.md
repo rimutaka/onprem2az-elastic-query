@@ -8,7 +8,8 @@ This utility generates a set of scripts to enable existing MS SQL DBs to perform
 * `config` - generates secondary config files from `config.json`.
 * `key` - generates *CREATE MASTER KEY* statements.
 * `source` - generates *CREATE EXTERNAL DATA SOURCE* statements
-* `template` - generates multiple scripts using a template.
+* `template` - generates multiple table-related scripts using a template.
+* `interpolate` - generates generic scripts using a template.
 * `fixtypes` - generate ALTER COLUMN scripts for incompatible SQL type, e.g. *image* or *text*.
 * `sqlcmd` - prepare a PowerShell script for executing all *.sql* files in the specified directory with *SqlCmd* utility.
 * `replace` - replaces parts of SQL code for refactoring.
@@ -191,6 +192,16 @@ It may be easier to create a shortcut in your working folder pointing at `\bin\D
   * the config file must be the same format as *TablesMirror.json* to correspond to *Configs.AllTables* class in the C# code.
 * **Action**: generate SQL scripts using `-t` template with input from `-c` config, including table definitions.
 * **Example**: `azpm template -t CreateExtTable.txt -c TablesMirror.json -o master`
+
+### interpolate
+* **Params**: 
+  * required `-t` - template name from *templates* sub-folder, e.g. `-t AddErrorLogging.txt` or `-t c:\myfolder\MyTemplate.txt`
+  * required `-c` - config file name from *config* sub-folder, e.g. `-c config.json` or `-c c:\myfolder\my-config.json`
+  * the config file must be the same format as *config.json* to correspond to *Configs.InitialConfig* class in the C# code.
+* **Action**: generate SQL scripts using `-t` template with input from `-c` config using `{{moustache}}` syntax for properties from *config.json*.
+* **Example**: `azpm template -t AddErrorLogging.txt -c config.json`
+
+The difference between `template` and `interpolate` is that *template* gathers table and SP data to generate mirror and external tables. *interpolate* is a generic script generator - it can only use data from *config.json*.
 
 ### fixtypes
 * **Params**: 
