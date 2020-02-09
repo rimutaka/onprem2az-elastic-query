@@ -1,6 +1,5 @@
 ﻿using System;
 using Newtonsoft.Json;
-using System.Text.RegularExpressions;
 using System.Collections.Generic;
 
 namespace AzurePoolCrossDbGenerator
@@ -62,7 +61,7 @@ namespace AzurePoolCrossDbGenerator
                     masterTableOrSP = tableParts[2],
                     masterDB = (prevTable.masterDB?.ToLower() != tableParts[0].ToLower()) ? tableParts[0] : null,
                     mirrorDB = (prevTable.mirrorDB?.ToLower() != config.mirrorDB.ToLower()) ? config.mirrorDB : null,
-                    masterCS = (prevTable.masterDB?.ToLower() != tableParts[0].ToLower()) ? GetConnectionString(config, tableParts[0]) : null
+                    masterCS = (prevTable.masterDB?.ToLower() != tableParts[0].ToLower()) ? DbAccess.GetConnectionString(config, tableParts[0]) : null
                 };
 
                 if (mirrorCount >= 0)
@@ -141,7 +140,7 @@ namespace AzurePoolCrossDbGenerator
                     masterTableOrSP = spParts[2],
                     masterDB = (prevTable.masterDB?.ToLower() != spParts[0].ToLower()) ? spParts[0] : null,
                     mirrorDB = (prevTable.mirrorDB?.ToLower() != config.mirrorDB.ToLower()) ? config.mirrorDB : null,
-                    masterCS = (prevTable.masterDB?.ToLower() != spParts[0].ToLower()) ? GetConnectionString(config, spParts[0]) : null
+                    masterCS = (prevTable.masterDB?.ToLower() != spParts[0].ToLower()) ? DbAccess.GetConnectionString(config, spParts[0]) : null
                 };
 
                 spList.Add(spItem); // add to mirror collection
@@ -188,27 +187,6 @@ namespace AzurePoolCrossDbGenerator
             if (spList.Count > 0) Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.SPsConfig, JsonConvert.SerializeObject(spList.ToArray(), jsonSettings));
             Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.MasterKeyConfig, JsonConvert.SerializeObject(masterKeyList.ToArray(), jsonSettings));
             Configs.GenericConfigEntry.SaveConfigFile(Program.FileNames.ExternalDataSourceConfig, JsonConvert.SerializeObject(extDataSrcList.ToArray(), jsonSettings));
-        }
-
-        /// <summary>
-        /// Get a connection string for the matching DB or log an error.
-        /// </summary>
-        /// <param name="config"></param>
-        /// <param name="dbName"></param>
-        /// <returns></returns>
-        static string GetConnectionString(Configs.InitialConfig config, string dbName)
-        {
-            string regexPattern = $".*Initial Catalog={dbName};.*";
-            var regexOptions = RegexOptions.Multiline | RegexOptions.IgnoreCase;
-            string cs = Regex.Match(config.connections, regexPattern, regexOptions)?.Value;
-            if (string.IsNullOrEmpty(cs))
-            {
-                cs = "connection_string_required"; // a placeholder in case the CS is missing
-                Program.WriteLine($"{config.mirrorDB} / {dbName}: missing connection string.", ConsoleColor.Red);
-                Program.ExitApp();
-            }
-
-            return cs;
         }
 
     }

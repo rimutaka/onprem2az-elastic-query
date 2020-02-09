@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Data.SqlClient;
+using System.Text.RegularExpressions;
 
 namespace AzurePoolCrossDbGenerator
 {
@@ -46,7 +47,7 @@ namespace AzurePoolCrossDbGenerator
                         sb.AppendLine(ItemDefinition(colName, colType, colLen, colPrecision, colScale));
 
                         // display a warning if incompatible data type was encountered
-                        if (colType=="text" || colType == "image")
+                        if (colType == "text" || colType == "image")
                         {
                             Program.WriteLine($"Incompatible type: {tableName}..{colName} {colType}", ConsoleColor.Red);
                         }
@@ -204,12 +205,12 @@ namespace AzurePoolCrossDbGenerator
                         string parScale = reader["NUMERIC_SCALE"].ToString();
 
                         // only IN params are supported
-                        if (parMode?.ToLower()!="in") Program.WriteLine($"Param {procedureName}.{parName} has invalid mode {parMode}", ConsoleColor.Red);
+                        if (parMode?.ToLower() != "in") Program.WriteLine($"Param {procedureName}.{parName} has invalid mode {parMode}", ConsoleColor.Red);
 
                         // add to the lists
                         sbNames.Append(parName);
                         sbNames.Append(",");
-                        
+
                         // e.g. @param1 nvarchar(255)
                         sbDefs.Append(ItemDefinition(parName, parType, parLen, parPrecision, parScale));
 
@@ -253,7 +254,7 @@ namespace AzurePoolCrossDbGenerator
                 command.Parameters.AddWithValue("@procedureName", procedureName);
                 connection.Open();
                 SqlDataReader reader = command.ExecuteReader();
-                
+
                 try
                 {
                     if (reader.HasRows) return true;
@@ -311,6 +312,89 @@ namespace AzurePoolCrossDbGenerator
                 throw new Exception($"Invalid column definition ");
 
             return colDef;
+        }
+
+
+        /// <summary>
+        /// Returns combined text from sys.syscomments for the object, assuming the object names are unique and no object is needed.
+        /// </summary>
+        /// <param name="connectionString"></param>
+        /// <param name="objectName"></param>
+        /// <returns></returns>
+        public static string GetObjectText(string connectionString, string objectName)
+        {
+            // query sys.syscomments to get the source TSQL code for the DB object
+            string queryString = $"select com.text, com.colid from sys.all_objects obj join sys.syscomments com on obj.object_id = com.id where name = @objectName order by com.colid";
+
+            StringBuilder sb = new StringBuilder(); // output container for the SQL text
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                SqlCommand command = new SqlCommand(queryString, connection);
+                command.Parameters.AddWithValue("@objectName", objectName);
+                connection.Open();
+                SqlDataReader reader = command.ExecuteReader();
+                try
+                {
+                    // check if there was any data returned at all
+                    if (!reader.HasRows) return null;
+
+                    while (reader.Read())
+                    {
+                        // read the source SQL from `text` column
+                        string sqlText = reader["text"].ToString();
+                        sb.Append(sqlText);
+                    }
+                }
+                finally
+                {
+                    reader.Close();
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Get a connection string for the matching DB or log an error.
+        /// </summary>
+        /// <param name="config"></param>
+        /// <param name="dbName"></param>
+        /// <returns></returns>
+        public static string GetConnectionString(Configs.InitialConfig config, string dbName)
+        {
+            string regexPattern = $".*Initial Catalog={dbName};.*";
+            var regexOptions = RegexOptions.Multiline | RegexOptions.IgnoreCase;
+            string cs = Regex.Match(config.connections, regexPattern, regexOptions)?.Value;
+            if (string.IsNullOrEmpty(cs))
+            {
+                cs = "connection_string_required"; // a placeholder in case the CS is missing
+                Program.WriteLine($"{config.mirrorDB} / {dbName}: missing connection string.", ConsoleColor.Red);
+                Program.ExitApp();
+            }
+
+            return cs;
+        }
+
+
+        /// <summary>
+        /// Get the DB name from the full connection string using regex
+        /// </summary>
+        /// <param name="dbConnectionString"></param>
+        /// <returns></returns>
+        public static string GetDbNameFromConnectionString(string dbConnectionString)
+        {
+            string regexPattern = @"Initial Catalog\s*=\s*([^;\s]+)";
+            var regexOptions = RegexOptions.IgnoreCase;
+            Match match = Regex.Match(dbConnectionString, regexPattern, regexOptions);
+            if (!match.Success || match.Groups.Count<2 || string.IsNullOrEmpty(match.Groups[1].Value))
+            {
+                Program.WriteLine();
+                Program.WriteLine("Cannot extract DB name from the connection string.", ConsoleColor.Red);
+                Program.ExitApp();
+            }
+
+            return match.Groups[1].Value;
         }
 
         public class ProcedureParts

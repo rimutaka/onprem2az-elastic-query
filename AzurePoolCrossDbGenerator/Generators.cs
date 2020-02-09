@@ -83,6 +83,77 @@ namespace AzurePoolCrossDbGenerator
             }
         }
 
+
+        /// <summary>
+        /// Saves the contents in outputFileName in the working directory with overwrite
+        /// </summary>
+        /// <param name="outputContents"></param>
+        /// <param name="outputFileName"></param>
+        static void SaveExtractedScript(string outputContents, string outputFileName)
+        {
+            string path = Path.Combine(Directory.GetCurrentDirectory(), outputFileName);
+
+            Program.WriteLine($"Saving to {outputFileName}");
+
+            try
+            {
+                File.WriteAllText(path, outputContents, System.Text.Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                Program.WriteLine(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Load an input file with a list of items, one per line
+        /// </summary>
+        /// <param name="listFileName"></param>
+        /// <returns></returns>
+        static string LoadInputFile(string listFileName)
+        {
+
+            if (string.IsNullOrEmpty(listFileName))
+            {
+                Program.WriteLine();
+                Program.WriteLine($"Use -l full_path or -l relative_path.", ConsoleColor.Red);
+                Program.ExitApp();
+            }
+
+            // build the full path depending on the input
+            string fullPath = (Path.IsPathRooted(listFileName)) ? listFileName : Path.Combine(Directory.GetCurrentDirectory(), listFileName);
+
+            // check if the file exists
+            if (!System.IO.File.Exists(fullPath))
+            {
+                Program.WriteLine();
+                Program.WriteLine($"Missing list file: {fullPath}. Use -l full_path or -l relative_path.", ConsoleColor.Red);
+                Program.ExitApp();
+            }
+
+            // load the file contents
+            string fileContents = null;
+            try
+            {
+                fileContents = File.ReadAllText(fullPath);
+            }
+            catch (Exception ex)
+            {
+                Program.WriteLine();
+                Program.WriteLine("Cannot read the lines file: " + ex.Message, ConsoleColor.Red);
+                Program.ExitApp();
+            }
+
+            if (string.IsNullOrEmpty(fileContents))
+            {
+                Program.WriteLine();
+                Program.WriteLine($"The -l file {fullPath} is empty.", ConsoleColor.Red);
+                Program.ExitApp();
+            }
+
+            return fileContents;
+        }
+
         static void SaveFile(string outputContents, string outputFullName)
         {
             // do not overwrite files for consistency
@@ -129,6 +200,31 @@ namespace AzurePoolCrossDbGenerator
 
             return null; // this is really redundant, but keeps the lint happy
 
+        }
+
+
+        /// <summary>
+        /// Runs git with the specified params in the current working dir and returns the output
+        /// </summary>
+        /// <param name="gitParams"></param>
+        /// <returns></returns>
+        static string GetGitOutput(string gitParams)
+        {
+
+            var cmdProc = new System.Diagnostics.Process();
+            cmdProc.StartInfo.FileName = "git";
+            cmdProc.StartInfo.Arguments = gitParams;
+            cmdProc.StartInfo.UseShellExecute = false;
+            cmdProc.StartInfo.RedirectStandardOutput = true;
+            cmdProc.Start();
+
+            string gitOutput = cmdProc.StandardOutput.ReadToEnd();
+
+            cmdProc.WaitForExit();
+
+            cmdProc.Dispose();
+
+            return gitOutput;
         }
     }
 }

@@ -13,10 +13,11 @@ namespace AzurePoolCrossDbGenerator
         {
             Program.WriteLine($"AzurePoolCrossDbGenerator started in {Directory.GetCurrentDirectory()} with params:");
 
-            string command = (args.Length > 0) ? args[0]?.Trim().ToLower() : ""; // must be a valid command
+            string command = (args.Length > 0) ? args[0]?.Trim().ToLowerInvariant() : ""; // must be a valid command
             Program.WriteLine($"Command: {command}");
 
-            string paramTemplate = null, paramConfig = null, paramGrepFileName = null, paramTargetDir = null, paramRunOn = null;
+            string paramTemplate = null, paramConfig = null, paramGrepFileName = null, paramTargetDir = null, paramRunOn = null, paramCSLatest = null, paramCSBase = null,
+                paramFileWithListOfItems = null;
 
             // extract additional params
             for (int i = 1; i<args.Length-1; i++)
@@ -51,6 +52,24 @@ namespace AzurePoolCrossDbGenerator
                         {
                             paramRunOn = args[i + 1];
                             Program.WriteLine($"Run on: {paramRunOn}");
+                            break;
+                        }
+                    case "-csl":
+                        {
+                            paramCSLatest = args[i + 1];
+                            Program.WriteLine($"Connection string, DB to extract from: {paramCSLatest}");
+                            break;
+                        }
+                    case "-csb":
+                        {
+                            paramCSBase = args[i + 1];
+                            Program.WriteLine($"Connection string, DB to compare to: {paramCSBase}");
+                            break;
+                        }
+                    case "-l":
+                        {
+                            paramFileWithListOfItems = args[i + 1];
+                            Program.WriteLine($"File with list of items: {paramFileWithListOfItems}");
                             break;
                         }
                 }
@@ -90,6 +109,11 @@ namespace AzurePoolCrossDbGenerator
                 case Commands.ScriptGenerationGeneric:
                     {
                         Generators.GenerateScript(Configs.InitialConfig.Load(paramConfig), paramTemplate);
+                        break;
+                    }
+                case Commands.ScriptGenerationExtractFromDb:
+                    {
+                        Generators.ExtractScriptsFromDb(paramCSLatest, paramCSBase, paramFileWithListOfItems);
                         break;
                     }
                 case Commands.AltTableColumnTypes:
@@ -211,6 +235,7 @@ namespace AzurePoolCrossDbGenerator
             public const string GenerateSecondaryConfigFiles = "config";
             public const string ScriptGenerationForTablesAnsSPs = "template";
             public const string ScriptGenerationGeneric = "interpolate";
+            public const string ScriptGenerationExtractFromDb = "extract";
             public const string GenerateSqlCmdBatch = "sqlcmd";
             public const string ReplaceInSqlFiles = "replace";
             public const string AltTableColumnTypes = "fixtypes";

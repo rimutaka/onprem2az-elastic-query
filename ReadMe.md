@@ -10,6 +10,7 @@ This utility generates a set of scripts to enable existing MS SQL DBs to perform
 * `source` - generates *CREATE EXTERNAL DATA SOURCE* statements
 * `template` - generates multiple table-related scripts using a template.
 * `interpolate` - generates generic scripts using a template.
+* `extract` - generates SQL scripts from DB objects, no template used.
 * `fixtypes` - generate ALTER COLUMN scripts for incompatible SQL type, e.g. *image* or *text*.
 * `sqlcmd` - prepare a PowerShell script for executing all *.sql* files in the specified directory with *SqlCmd* utility.
 * `replace` - replaces parts of SQL code for refactoring.
@@ -24,6 +25,8 @@ The structure of config files differs for different commands.
 * `-d target_directory` - tells the app where to find *.sql* files for the command to process.
 Use an absolute path or a name of subfolder under `scripts`.
 * `-o master|mirror|az` - where to run the script
+* `-csl db_connection_string`, `-csb db_connection_string`  - connection strings to the current and base DBs
+* `-l file_name` - list of file names for processing as input
 
 ### Specific behavior
 
@@ -202,6 +205,23 @@ It may be easier to create a shortcut in your working folder pointing at `\bin\D
 * **Example**: `azpm template -t AddErrorLogging.txt -c config.json`
 
 The difference between `template` and `interpolate` is that *template* gathers table and SP data to generate mirror and external tables. *interpolate* is a generic script generator - it can only use data from *config.json*.
+
+### extract
+* **Params**: 
+  * required `-csl` - a DB connection string to a DB extract object code from, e.g. `User ID=sa;Password=sapwd;Initial Catalog=my_db_name;Server=.`
+  * optional `-csb` - a DB connection string to a DB with the base code for comparison. Only objects different from the base will be extracted. All objects are extracted if this param is omitted.
+  * optional `-l` - a full or relative path to a file with the list of 4-part file names (e.g. `dbo.CR.StoredProcedure.sql`), one per line for extraction from `csl` DB. If this param is omitted, the app will diff *HEAD* to the very first commit of the current repo and use the list of files from there. 
+* **Action**: extracts SQL code for all specified objects from *sys.syscomments* table and saves them in the current folder replacing the existing files for diffing. It uses either a supplied list of objects or runs a diff in the repo the current folder belongs to. No config files required for this operation.
+* **Example 1**: `azpm extract -csl "User ID=sa;Password=sapwd;Initial Catalog=cutomer_db_125;Server=." -csb "User ID=sa;Password=sapwd;Initial Catalog=customer_db_base;Server=."` - extract all objects from *-csl* that (a) changed between the initial commit and HEAD and (b) differ between *-csl* and *-csb* DBs.
+* **Example 2**: `azpm extract -csl "User ID=sa;Password=sapwd;Initial Catalog=cutomer_db_125;Server=."` - extract all objects from *-csl* that changed between the initial commit and HEAD.
+* **Example 3**: `azpm extract -csl "User ID=sa;Password=sapwd;Initial Catalog=cutomer_db_125;Server=." -l "..\changed-sps.txt"` - extract objects from *-csl* that are listed in *changed-sps.txt* file.
+* **Example 4**: `azpm extract -csl "User ID=sa;Password=sapwd;Initial Catalog=cutomer_db_125;Server=." -csb "User ID=sa;Password=sapwd;Initial Catalog=customer_db_base;Server=." -l "..\changed-sps.txt"` - extract all objects from *-csl* that (a) listed in *changed-sps.txt* file and (b) differ between *-csl* and *-csb* DBs.
+* **changed-sps.txt example**: 
+```
+dbo.ADD_ONLINERESERVATION.StoredProcedure.sql
+dbo.fnGetSanitizedName.UserDefinedFunction.sql
+dbo.v_ExportedOrders.View.sql
+```
 
 ### fixtypes
 * **Params**: 
