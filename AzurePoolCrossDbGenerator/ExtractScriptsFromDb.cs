@@ -81,7 +81,11 @@ namespace AzurePoolCrossDbGenerator
             // process only the objects we are interested in
             foreach (string fileName in listOfObjectFileNames.Split())
             {
-                if (!fileName.EndsWith(".sql", StringComparison.OrdinalIgnoreCase)) continue; // ignore any non-SQL files
+                if (!fileName.EndsWith(".sql", StringComparison.OrdinalIgnoreCase))
+                {
+                    Program.WriteLine($"Ignoring {fileName} - not an SQL script.", ConsoleColor.Yellow);
+                    continue; // ignore any non-SQL files
+                }
 
                 // expecting a 4-part object name here, e.g. dbo.CR.StoredProcedure.sql
                 string[] nameParts = fileName.Split('.');
