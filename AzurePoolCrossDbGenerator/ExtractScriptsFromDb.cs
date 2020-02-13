@@ -83,7 +83,7 @@ namespace AzurePoolCrossDbGenerator
             {
                 if (!fileName.EndsWith(".sql", StringComparison.OrdinalIgnoreCase))
                 {
-                    Program.WriteLine($"Ignoring {fileName} - not an SQL script.", ConsoleColor.Yellow);
+                    if (!string.IsNullOrWhiteSpace(fileName)) Program.WriteLine($"Ignoring {fileName} - not an SQL script.", ConsoleColor.Yellow);
                     continue; // ignore any non-SQL files
                 }
 
