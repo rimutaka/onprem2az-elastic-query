@@ -49,7 +49,7 @@ namespace AzurePoolCrossDbGenerator
                         // display a warning if incompatible data type was encountered
                         if (colType == "text" || colType == "image")
                         {
-                            Program.WriteLine($"Incompatible type: {tableName}..{colName} {colType}", ConsoleColor.Red);
+                            Program.WriteLine($"Incompatible type: {tableName}..{colName} {colType} must be fixed in the DB first.", ConsoleColor.Red);
                         }
                     }
                 }
